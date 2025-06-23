@@ -32,7 +32,7 @@
     .controls {
       margin-top: 10px;
     }
-    .share-button, .stop-button {
+    button, select {
       background: white;
       color: black;
       border: none;
@@ -42,41 +42,31 @@
       font-weight: bold;
       border-radius: 5px;
     }
-    .top-controls {
-      margin-bottom: 20px;
-    }
-    select, label {
-      color: black;
-      font-weight: bold;
-      margin: 5px;
+    #myId {
+      font-size: 16px;
+      color: yellow;
+      margin: 20px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
+
   <h1>🎥 Cast Stormex</h1>
-  <p id="myId" style="color: yellow;">Mon ID de stream : ...</p>
+  <p id="myId">Mon ID de stream : ...</p>
 
-  <div class="top-controls">
-    <label for="slotSelect">Choisir la POV :</label>
-    <select id="slotSelect">
-      <option value="fela">SOM FELA</option>
-      <option value="natoky">SOM NATOKY</option>
-      <option value="bema">SOM BEMA</option>
-      <option value="w1xy">SOM W1XY</option>
+  <!-- Contrôle de partage déplacé ici -->
+  <div>
+    <select id="targetSlot">
+      <option value="fela">Slot : SOM FELA</option>
+      <option value="natoky">Slot : SOM NATOKY</option>
+      <option value="bema">Slot : SOM BEMA</option>
+      <option value="w1xy">Slot : SOM W1XY</option>
     </select>
-
-    <label>
-      <input type="checkbox" id="delayCheckbox">
-      Activer 1 min de délai
-    </label>
-
-    <div class="controls">
-      <button class="share-button" onclick="startShare()">Partager ton écran</button>
-      <button class="stop-button" onclick="stopShare()">Arrêter</button>
-    </div>
+    <button onclick="startShare()">Partager mon écran</button>
   </div>
 
+  <!-- Les slots vidéo -->
   <div class="player-container">
     <div class="overlay">SOM FELA</div>
     <video id="fela" autoplay></video>
@@ -99,8 +89,6 @@
 
   <script>
     const peer = new Peer();
-    let currentStream = null;
-
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -114,95 +102,37 @@
 
     peer.on('call', call => {
       call.answer();
+      const targetSlot = call.metadata?.slot;
       call.on('stream', remoteStream => {
-        const delayEnabled = document.getElementById('delayCheckbox').checked;
-        if (delayEnabled) {
-          const buffer = [];
-          const targetSlot = findFreeSlot();
-
-          if (!targetSlot) return;
-
-          const interval = setInterval(() => {
-            if (buffer.length > 0) {
-              videoElements[targetSlot].srcObject = buffer.shift();
-            }
-          }, 1000 / 30); // 30 FPS approx.
-
-          const startTime = Date.now();
-          const delayTime = 60 * 1000;
-
-          const mediaStream = new MediaStream();
-          videoElements[targetSlot].srcObject = mediaStream;
-
-          const trackProcessor = new MediaStreamTrackProcessor(remoteStream.getVideoTracks()[0]);
-          const reader = trackProcessor.readable.getReader();
-
-          function read() {
-            reader.read().then(({ done, value }) => {
-              if (done) return;
-              const frame = new VideoFrame(value);
-              const canvas = document.createElement("canvas");
-              canvas.width = frame.displayWidth;
-              canvas.height = frame.displayHeight;
-              const ctx = canvas.getContext("2d");
-              ctx.drawImage(frame, 0, 0);
-              canvas.captureStream().getVideoTracks().forEach(t => mediaStream.addTrack(t));
-              read();
-            });
-          }
-          read();
+        if (targetSlot && videoElements[targetSlot]) {
+          videoElements[targetSlot].srcObject = remoteStream;
         } else {
-          const targetSlot = findFreeSlot();
-          if (targetSlot) {
-            videoElements[targetSlot].srcObject = remoteStream;
+          // Slot inconnu : on cherche un slot vide
+          for (const key in videoElements) {
+            if (!videoElements[key].srcObject) {
+              videoElements[key].srcObject = remoteStream;
+              break;
+            }
           }
         }
       });
     });
 
-    function findFreeSlot() {
-      for (const key in videoElements) {
-        if (!videoElements[key].srcObject) {
-          return key;
-        }
-      }
-      return null;
-    }
-
     async function startShare() {
-      const slotId = document.getElementById('slotSelect').value;
-      const delayEnabled = document.getElementById('delayCheckbox').checked;
-
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            frameRate: { ideal: 120, max: 120 }
-          }
-        });
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const peerIdToCall = prompt("ID du joueur receveur :");
+        const slot = document.getElementById('targetSlot').value;
 
-        currentStream = stream;
-        videoElements[slotId].srcObject = stream;
-
-        const peerIdToCall = prompt("ID du joueur à qui envoyer ton écran :");
         if (peerIdToCall) {
-          peer.call(peerIdToCall, stream);
+          peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
         }
-
       } catch (err) {
         alert("Erreur : " + err.message);
       }
     }
-
-    function stopShare() {
-      for (const key in videoElements) {
-        const video = videoElements[key];
-        if (video.srcObject) {
-          video.srcObject.getTracks().forEach(track => track.stop());
-          video.srcObject = null;
-        }
-      }
-      currentStream = null;
-    }
   </script>
+
 </body>
 </html>
+
