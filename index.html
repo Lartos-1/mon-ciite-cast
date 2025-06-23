@@ -29,49 +29,44 @@
       font-weight: bold;
       border-radius: 5px;
     }
-    .controls, .top-controls {
-      margin: 15px;
+    .controls {
+      margin-top: 10px;
     }
-    .btn {
+    button, select {
       background: white;
       color: black;
       border: none;
-      padding: 8px 15px;
+      padding: 5px 10px;
       cursor: pointer;
+      margin: 5px;
       font-weight: bold;
       border-radius: 5px;
-      margin: 5px;
     }
-    .hidden-id {
-      font-size: 18px;
+    #myId {
+      font-size: 16px;
       color: yellow;
+      margin: 20px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-  <h1>🎥 Cast Stormex</h1>
 
-  <div class="top-controls">
-    <p class="hidden-id" id="myId">Mon ID de stream : <span id="idValue">[Masqué]</span></p>
-    <button class="btn" onclick="toggleId()">👁️ Afficher/Masquer l’ID</button><br>
-    
-    <label for="slotSelect">Choisir le slot :</label>
-    <select id="slotSelect" class="btn">
-      <option value="fela">SOM FELA</option>
-      <option value="natoky">SOM NATOKY</option>
-      <option value="bema">SOM BEMA</option>
-      <option value="w1xy">SOM W1XY</option>
+  <h1>🎥 Cast Stormex</h1>
+  <p id="myId">Mon ID de stream : ...</p>
+
+  <!-- Contrôle de partage déplacé ici -->
+  <div>
+    <select id="targetSlot">
+      <option value="fela">Slot : SOM FELA</option>
+      <option value="natoky">Slot : SOM NATOKY</option>
+      <option value="bema">Slot : SOM BEMA</option>
+      <option value="w1xy">Slot : SOM W1XY</option>
     </select>
-    
-    <label style="margin-left: 10px;">
-      <input type="checkbox" id="delayCheckbox"> 📺 1 minute de délai
-    </label>
-    
-    <button class="btn" onclick="startShare()">Partager mon écran</button>
-    <button class="btn" onclick="stopShare()">Arrêter</button>
+    <button onclick="startShare()">Partager mon écran</button>
   </div>
 
+  <!-- Les slots vidéo -->
   <div class="player-container">
     <div class="overlay">SOM FELA</div>
     <video id="fela" autoplay></video>
@@ -94,10 +89,6 @@
 
   <script>
     const peer = new Peer();
-    let localStream = null;
-    let currentCall = null;
-    let myId = "";
-
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -106,73 +97,44 @@
     };
 
     peer.on('open', id => {
-      myId = id;
-      document.getElementById("idValue").innerText = id;
+      document.getElementById("myId").innerText = "Mon ID de stream : " + id;
     });
 
     peer.on('call', call => {
       call.answer();
+      const targetSlot = call.metadata?.slot;
       call.on('stream', remoteStream => {
-        // Cherche un slot vide
-        for (const key in videoElements) {
-          if (!videoElements[key].srcObject) {
-            videoElements[key].srcObject = remoteStream;
-            break;
+        if (targetSlot && videoElements[targetSlot]) {
+          videoElements[targetSlot].srcObject = remoteStream;
+        } else {
+          // Slot inconnu : on cherche un slot vide
+          for (const key in videoElements) {
+            if (!videoElements[key].srcObject) {
+              videoElements[key].srcObject = remoteStream;
+              break;
+            }
           }
         }
       });
     });
 
     async function startShare() {
-      const selectedSlot = document.getElementById('slotSelect').value;
-      const useDelay = document.getElementById('delayCheckbox').checked;
-
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-          video: {
-            frameRate: { ideal: 120, max: 120 },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          }
-        });
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const peerIdToCall = prompt("ID du joueur receveur :");
+        const slot = document.getElementById('targetSlot').value;
 
-        localStream = stream;
-
-        const receiverId = prompt("ID du joueur à qui envoyer ton écran :");
-        if (!receiverId) return;
-
-        if (useDelay) {
-          setTimeout(() => {
-            currentCall = peer.call(receiverId, stream);
-            videoElements[selectedSlot].srcObject = stream;
-          }, 60000); // 60 000ms = 1min
-        } else {
-          currentCall = peer.call(receiverId, stream);
-          videoElements[selectedSlot].srcObject = stream;
+        if (peerIdToCall) {
+          peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
         }
-
       } catch (err) {
         alert("Erreur : " + err.message);
       }
     }
-
-    function stopShare() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
-      }
-      if (currentCall) {
-        currentCall.close();
-        currentCall = null;
-      }
-    }
-
-    function toggleId() {
-      const span = document.getElementById("idValue");
-      span.innerText = (span.innerText === myId) ? "[Masqué]" : myId;
-    }
   </script>
+
 </body>
 </html>
+
 
 
