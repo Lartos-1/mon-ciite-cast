@@ -43,9 +43,11 @@
       border-radius: 5px;
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
   <h1>🎥 Cast Stormex</h1>
+  <p id="myId" style="color: yellow;">Mon ID de stream : ...</p>
 
   <div class="player-container">
     <div class="overlay">SOM FELA</div>
@@ -84,17 +86,48 @@
   </div>
 
   <script>
+    const peer = new Peer();
+
+    const videoElements = {
+      fela: document.getElementById('fela'),
+      natoky: document.getElementById('natoky'),
+      bema: document.getElementById('bema'),
+      w1xy: document.getElementById('w1xy')
+    };
+
+    peer.on('open', id => {
+      document.getElementById("myId").innerText = "Mon ID de stream : " + id;
+    });
+
+    peer.on('call', call => {
+      call.answer(); // on accepte
+      call.on('stream', remoteStream => {
+        // affiche dans un slot vide
+        for (const key in videoElements) {
+          if (!videoElements[key].srcObject) {
+            videoElements[key].srcObject = remoteStream;
+            break;
+          }
+        }
+      });
+    });
+
     async function startShare(id) {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        document.getElementById(id).srcObject = stream;
+        videoElements[id].srcObject = stream;
+
+        const peerIdToCall = prompt("ID du joueur qui doit recevoir ton écran :");
+        if (peerIdToCall) {
+          const call = peer.call(peerIdToCall, stream);
+        }
       } catch (err) {
         alert("Erreur : " + err.message);
       }
     }
 
     function stopShare(id) {
-      const video = document.getElementById(id);
+      const video = videoElements[id];
       if (video.srcObject) {
         video.srcObject.getTracks().forEach(track => track.stop());
         video.srcObject = null;
