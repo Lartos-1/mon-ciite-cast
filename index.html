@@ -32,7 +32,7 @@
     .controls {
       margin-top: 10px;
     }
-    .share-button, .stop-button {
+    button, select {
       background: white;
       color: black;
       border: none;
@@ -42,52 +42,53 @@
       font-weight: bold;
       border-radius: 5px;
     }
+    #myId {
+      font-size: 16px;
+      color: yellow;
+      margin: 20px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-  <h1>🎥 Cast Stormex</h1>
-  <p id="myId" style="color: yellow;">Mon ID de stream : ...</p>
 
+  <h1>🎥 Cast Stormex</h1>
+  <p id="myId">Mon ID de stream : ...</p>
+
+  <!-- Contrôle de partage déplacé ici -->
+  <div>
+    <select id="targetSlot">
+      <option value="fela">Slot : SOM FELA</option>
+      <option value="natoky">Slot : SOM NATOKY</option>
+      <option value="bema">Slot : SOM BEMA</option>
+      <option value="w1xy">Slot : SOM W1XY</option>
+    </select>
+    <button onclick="startShare()">Partager mon écran</button>
+  </div>
+
+  <!-- Les slots vidéo -->
   <div class="player-container">
     <div class="overlay">SOM FELA</div>
     <video id="fela" autoplay></video>
-    <div class="controls">
-      <button class="share-button" onclick="startShare('fela')">Partager ton écran</button>
-      <button class="stop-button" onclick="stopShare('fela')">Arrêter</button>
-    </div>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM NATOKY</div>
     <video id="natoky" autoplay></video>
-    <div class="controls">
-      <button class="share-button" onclick="startShare('natoky')">Partager ton écran</button>
-      <button class="stop-button" onclick="stopShare('natoky')">Arrêter</button>
-    </div>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM BEMA</div>
     <video id="bema" autoplay></video>
-    <div class="controls">
-      <button class="share-button" onclick="startShare('bema')">Partager ton écran</button>
-      <button class="stop-button" onclick="stopShare('bema')">Arrêter</button>
-    </div>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM W1XY</div>
     <video id="w1xy" autoplay></video>
-    <div class="controls">
-      <button class="share-button" onclick="startShare('w1xy')">Partager ton écran</button>
-      <button class="stop-button" onclick="stopShare('w1xy')">Arrêter</button>
-    </div>
   </div>
 
   <script>
     const peer = new Peer();
-
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -100,39 +101,37 @@
     });
 
     peer.on('call', call => {
-      call.answer(); // on accepte
+      call.answer();
+      const targetSlot = call.metadata?.slot;
       call.on('stream', remoteStream => {
-        // affiche dans un slot vide
-        for (const key in videoElements) {
-          if (!videoElements[key].srcObject) {
-            videoElements[key].srcObject = remoteStream;
-            break;
+        if (targetSlot && videoElements[targetSlot]) {
+          videoElements[targetSlot].srcObject = remoteStream;
+        } else {
+          // Slot inconnu : on cherche un slot vide
+          for (const key in videoElements) {
+            if (!videoElements[key].srcObject) {
+              videoElements[key].srcObject = remoteStream;
+              break;
+            }
           }
         }
       });
     });
 
-    async function startShare(id) {
+    async function startShare() {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        videoElements[id].srcObject = stream;
+        const peerIdToCall = prompt("ID du joueur receveur :");
+        const slot = document.getElementById('targetSlot').value;
 
-        const peerIdToCall = prompt("ID du joueur qui doit recevoir ton écran :");
         if (peerIdToCall) {
-          const call = peer.call(peerIdToCall, stream);
+          peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
         }
       } catch (err) {
         alert("Erreur : " + err.message);
       }
     }
-
-    function stopShare(id) {
-      const video = videoElements[id];
-      if (video.srcObject) {
-        video.srcObject.getTracks().forEach(track => track.stop());
-        video.srcObject = null;
-      }
-    }
   </script>
+
 </body>
 </html>
