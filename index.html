@@ -28,15 +28,25 @@
       object-fit: cover;
     }
 
+    /* Plein écran : la vidéo prend tout l'écran */
+    .player-container:fullscreen video {
+      width: 100vw;
+      height: 100vh;
+      border: none;
+      border-radius: 0;
+      object-fit: contain;
+      background: black;
+    }
+
+    /* Barre info plus petite */
     .info-bar {
       position: absolute;
-      bottom: 3px;
+      bottom: 2px;
       left: 50%;
       transform: translateX(-50%);
-      width: 140px;
-      font-size: 9px;
-      font-weight: normal;
-      border-radius: 0 0 6px 6px;
+      width: 150px;
+      font-size: 10px;
+      border-radius: 0 0 4px 4px;
       overflow: hidden;
       user-select: none;
       pointer-events: none;
@@ -49,7 +59,7 @@
       display: flex;
       align-items: center;
       padding: 2px 6px;
-      gap: 4px;
+      gap: 5px;
       font-weight: bold;
       height: 18px;
     }
@@ -67,8 +77,7 @@
       color: black;
       padding: 2px 5px;
       height: 16px;
-      font-weight: normal;
-      font-size: 8px;
+      font-size: 9px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -76,10 +85,10 @@
 
     .controls-bottom {
       position: absolute;
-      bottom: 5px;
-      right: 5px;
+      bottom: 4px;
+      right: 4px;
       display: flex;
-      gap: 8px;
+      gap: 6px;
       pointer-events: auto;
       z-index: 20;
     }
@@ -88,10 +97,10 @@
       background: rgba(0, 0, 0, 0.6);
       border: none;
       color: white;
-      font-size: 16px;
+      font-size: 14px;
       border-radius: 50%;
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       cursor: pointer;
       display: flex;
       align-items: center;
@@ -102,6 +111,29 @@
     .control-button:focus {
       outline: none;
     }
+
+    /* Styles pour l'ID du stream */
+    #myId {
+      margin: 10px;
+      font-size: 14px;
+      user-select: text;
+    }
+
+    #idValue {
+      font-weight: bold;
+      margin-left: 5px;
+      user-select: text;
+    }
+
+    #toggleIdBtn {
+      background: transparent;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      user-select: none;
+      vertical-align: middle;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
@@ -109,7 +141,8 @@
 
   <h1>🎥 Cast Stormex</h1>
 
-  <p id="myId">Mon ID de stream : <span id="idValue">...</span>
+  <p id="myId">Mon ID de stream :
+    <span id="idValue">...</span>
     <button id="toggleIdBtn" onclick="toggleId()">👁️</button>
   </p>
 
@@ -124,9 +157,9 @@
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
-  <!-- Bloc vidéo pour chaque joueur -->
   <div class="player-container" id="container-fela">
     <video id="fela" autoplay muted></video>
+
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -134,6 +167,7 @@
       </div>
       <div class="info-bar-bottom" id="stats-fela">Chargement des stats...</div>
     </div>
+
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('fela')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-fela')" title="Agrandir">⬜</button>
@@ -142,6 +176,7 @@
 
   <div class="player-container" id="container-natoky">
     <video id="natoky" autoplay muted></video>
+
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -149,6 +184,7 @@
       </div>
       <div class="info-bar-bottom" id="stats-natoky">Chargement des stats...</div>
     </div>
+
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('natoky')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-natoky')" title="Agrandir">⬜</button>
@@ -157,6 +193,7 @@
 
   <div class="player-container" id="container-bema">
     <video id="bema" autoplay muted></video>
+
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -164,6 +201,7 @@
       </div>
       <div class="info-bar-bottom" id="stats-bema">Chargement des stats...</div>
     </div>
+
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('bema')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-bema')" title="Agrandir">⬜</button>
@@ -172,6 +210,7 @@
 
   <div class="player-container" id="container-w1xy">
     <video id="w1xy" autoplay muted></video>
+
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -179,6 +218,7 @@
       </div>
       <div class="info-bar-bottom" id="stats-w1xy">Chargement des stats...</div>
     </div>
+
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('w1xy')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-w1xy')" title="Agrandir">⬜</button>
@@ -187,6 +227,7 @@
 
   <script>
     const peer = new Peer();
+
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -254,60 +295,5 @@
     }
 
     function toggleMute(slotId) {
-      const video = document.getElementById(slotId);
-      const btn = video.parentElement.querySelector(".control-button");
-      video.muted = !video.muted;
-      btn.textContent = video.muted ? "🔇" : "🔊";
-    }
+      const video = video
 
-    function toggleFullscreen(containerId) {
-      const elem = document.getElementById(containerId);
-      if (!document.fullscreenElement) {
-        elem.requestFullscreen().catch(err => alert(`Erreur en plein écran: ${err.message}`));
-      } else {
-        document.exitFullscreen();
-      }
-    }
-
-    function toggleId() {
-      const idSpan = document.getElementById('idValue');
-      const toggleBtn = document.getElementById('toggleIdBtn');
-      if (idSpan.style.display === "none") {
-        idSpan.style.display = "inline";
-        toggleBtn.textContent = "👁️";
-      } else {
-        idSpan.style.display = "none";
-        toggleBtn.textContent = "🙈";
-      }
-    }
-
-    const trackerProfiles = {
-      fela: "https://fortnitetracker.com/profile/all/SOM%20Felanigh_ttt",
-      bema: "https://fortnitetracker.com/profile/all/bema%20qual%20div%201",
-      natoky: "https://fortnitetracker.com/profile/all/Natokyks/events",
-      w1xy: ""
-    };
-
-    async function updateStats(playerKey) {
-      const statsEl = statsElements[playerKey];
-      const url = trackerProfiles[playerKey];
-      if (!url) {
-        statsEl.textContent = "Stats non disponibles";
-        return;
-      }
-
-      try {
-        statsEl.textContent = "Stats mises à jour (simulation)";
-      } catch {
-        statsEl.textContent = "Erreur chargement stats";
-      }
-    }
-
-    setInterval(() => {
-      Object.keys(statsElements).forEach(updateStats);
-    }, 60000);
-
-    Object.keys(statsElements).forEach(updateStats);
-  </script>
-</body>
-</html>
