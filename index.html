@@ -74,12 +74,54 @@
       font-size: 10px;
       padding: 0;
     }
+
+    #myId {
+      font-size: 16px;
+      color: yellow;
+      margin: 20px;
+    }
+
+    button, select {
+      background: white;
+      color: black;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      margin: 5px;
+      font-weight: bold;
+      border-radius: 5px;
+    }
+
+    #toggleIdBtn {
+      background: transparent;
+      color: yellow;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
+    }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
   <h1>🎥 Cast Stormex</h1>
 
+  <p id="myId">Mon ID de stream : <span id="idValue">...</span>
+    <button id="toggleIdBtn" onclick="toggleId()">👁️</button>
+  </p>
+
+  <div>
+    <select id="targetSlot">
+      <option value="fela">Slot : SOM FELA</option>
+      <option value="natoky">Slot : SOM NATOKY</option>
+      <option value="bema">Slot : SOM BEMA</option>
+      <option value="w1xy">Slot : SOM W1XY</option>
+    </select>
+    <button onclick="startShare()">Partager mon écran</button>
+    <button onclick="stopShare()">Arrêter le partage</button>
+  </div>
+
+  <!-- FELA -->
   <div class="player-container">
     <video id="fela" autoplay muted></video>
     <div class="stats-overlay">
@@ -94,20 +136,7 @@
     </div>
   </div>
 
-  <div class="player-container">
-    <video id="bema" autoplay muted></video>
-    <div class="stats-overlay">
-      <div class="stats-top">
-        <img src="https://flagcdn.com/fr.svg" alt="FR">
-        SOM BEMA
-      </div>
-      <div class="stats-bottom">
-        <span>98ᵉ • 63pts</span>
-        <button class="mute-button" onclick="toggleMute('bema')">🔇</button>
-      </div>
-    </div>
-  </div>
-
+  <!-- NATOKY -->
   <div class="player-container">
     <video id="natoky" autoplay muted></video>
     <div class="stats-overlay">
@@ -116,12 +145,28 @@
         SOM NATOKY
       </div>
       <div class="stats-bottom">
-        <span>75ᵉ • 72pts</span>
+        <span>98ᵉ • 63pts</span>
         <button class="mute-button" onclick="toggleMute('natoky')">🔇</button>
       </div>
     </div>
   </div>
 
+  <!-- BEMA -->
+  <div class="player-container">
+    <video id="bema" autoplay muted></video>
+    <div class="stats-overlay">
+      <div class="stats-top">
+        <img src="https://flagcdn.com/fr.svg" alt="FR">
+        SOM BEMA
+      </div>
+      <div class="stats-bottom">
+        <span>75ᵉ • 72pts</span>
+        <button class="mute-button" onclick="toggleMute('bema')">🔇</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- W1XY -->
   <div class="player-container">
     <video id="w1xy" autoplay muted></video>
     <div class="stats-overlay">
@@ -137,11 +182,76 @@
   </div>
 
   <script>
-    function toggleMute(id) {
-      const video = document.getElementById(id);
+    const peer = new Peer();
+    const videoElements = {
+      fela: document.getElementById('fela'),
+      natoky: document.getElementById('natoky'),
+      bema: document.getElementById('bema'),
+      w1xy: document.getElementById('w1xy')
+    };
+
+    let currentStream = null;
+
+    peer.on('open', id => {
+      document.getElementById("idValue").textContent = id;
+    });
+
+    peer.on('call', call => {
+      call.answer();
+      const targetSlot = call.metadata?.slot;
+      call.on('stream', remoteStream => {
+        if (targetSlot && videoElements[targetSlot]) {
+          videoElements[targetSlot].srcObject = remoteStream;
+        } else {
+          for (const key in videoElements) {
+            if (!videoElements[key].srcObject) {
+              videoElements[key].srcObject = remoteStream;
+              break;
+            }
+          }
+        }
+      });
+    });
+
+    async function startShare() {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60, max: 60 } }, audio: true });
+        currentStream = stream;
+        const peerIdToCall = prompt("ID du joueur receveur :");
+        const slot = document.getElementById('targetSlot').value;
+
+        if (peerIdToCall) {
+          peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
+        }
+      } catch (err) {
+        alert("Erreur : " + err.message);
+      }
+    }
+
+    function stopShare() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
+      }
+    }
+
+    function toggleMute(slotId) {
+      const video = document.getElementById(slotId);
       const btn = video.parentElement.querySelector(".mute-button");
       video.muted = !video.muted;
       btn.textContent = video.muted ? "🔇" : "🔊";
+    }
+
+    function toggleId() {
+      const idSpan = document.getElementById('idValue');
+      const toggleBtn = document.getElementById('toggleIdBtn');
+      if (idSpan.style.display === "none") {
+        idSpan.style.display = "inline";
+        toggleBtn.textContent = "👁️";
+      } else {
+        idSpan.style.display = "none";
+        toggleBtn.textContent = "🙈";
+      }
     }
   </script>
 
