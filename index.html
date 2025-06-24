@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Stormex Cast</title>
   <style>
     body {
@@ -155,7 +155,20 @@
 
     async function startShare() {
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60, max: 60 } }, audio: true });
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            displaySurface: "window",
+            frameRate: { ideal: 60, max: 60 }
+          },
+          audio: true
+        });
+
+        // Log pour vérifier le type de surface capturée
+        if (stream.getVideoTracks().length > 0) {
+          const settings = stream.getVideoTracks()[0].getSettings();
+          console.log("Surface capturée:", settings.displaySurface || "inconnu");
+        }
+
         currentStream = stream;
         const peerIdToCall = prompt("ID du joueur receveur :");
         const slot = document.getElementById('targetSlot').value;
@@ -196,3 +209,4 @@
   </script>
 </body>
 </html>
+
