@@ -10,16 +10,19 @@
       text-align: center;
       font-family: sans-serif;
     }
+
     .player-container {
       position: relative;
       display: inline-block;
       margin: 10px;
     }
+
     video {
       width: 300px;
       height: 200px;
       border: 2px solid white;
     }
+
     .overlay {
       position: absolute;
       top: 5px;
@@ -29,9 +32,11 @@
       font-weight: bold;
       border-radius: 5px;
     }
+
     .controls {
       margin-top: 10px;
     }
+
     button, select {
       background: white;
       color: black;
@@ -42,10 +47,33 @@
       font-weight: bold;
       border-radius: 5px;
     }
+
     #myId {
       font-size: 16px;
       color: yellow;
       margin: 20px;
+    }
+
+    .mute-button {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      border: none;
+      color: white;
+      font-size: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      width: 30px;
+      height: 30px;
+    }
+
+    #toggleIdBtn {
+      background: transparent;
+      color: yellow;
+      font-size: 18px;
+      cursor: pointer;
+      border: none;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
@@ -54,10 +82,10 @@
 
   <h1>🎥 Cast Stormex</h1>
 
-  <p id="myId">Mon ID de stream : <span id="idValue">...</span></p>
-  <button onclick="toggleId()">👁️ Afficher / Masquer l'ID</button>
+  <p id="myId">Mon ID de stream : <span id="idValue">...</span>
+    <button id="toggleIdBtn" onclick="toggleId()">👁️</button>
+  </p>
 
-  <!-- Contrôle de partage -->
   <div>
     <select id="targetSlot">
       <option value="fela">Slot : SOM FELA</option>
@@ -69,32 +97,32 @@
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
-  <!-- Les slots vidéo -->
   <div class="player-container">
     <div class="overlay">SOM FELA</div>
     <video id="fela" autoplay></video>
+    <button class="mute-button" onclick="toggleMute('fela')">🔊</button>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM NATOKY</div>
     <video id="natoky" autoplay></video>
+    <button class="mute-button" onclick="toggleMute('natoky')">🔊</button>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM BEMA</div>
     <video id="bema" autoplay></video>
+    <button class="mute-button" onclick="toggleMute('bema')">🔊</button>
   </div>
 
   <div class="player-container">
     <div class="overlay">SOM W1XY</div>
     <video id="w1xy" autoplay></video>
+    <button class="mute-button" onclick="toggleMute('w1xy')">🔊</button>
   </div>
 
   <script>
     const peer = new Peer();
-    let myId = "";
-    let localStream = null;
-
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -102,9 +130,10 @@
       w1xy: document.getElementById('w1xy')
     };
 
+    let currentStream = null;
+
     peer.on('open', id => {
-      myId = id;
-      document.getElementById("idValue").innerText = id;
+      document.getElementById("idValue").textContent = id;
     });
 
     peer.on('call', call => {
@@ -126,8 +155,8 @@
 
     async function startShare() {
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        localStream = stream;
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60, max: 60 } }, audio: true });
+        currentStream = stream;
         const peerIdToCall = prompt("ID du joueur receveur :");
         const slot = document.getElementById('targetSlot').value;
 
@@ -140,24 +169,30 @@
     }
 
     function stopShare() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-        localStream = null;
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+        currentStream = null;
       }
+    }
+
+    function toggleMute(slotId) {
+      const video = document.getElementById(slotId);
+      const btn = video.parentElement.querySelector(".mute-button");
+      video.muted = !video.muted;
+      btn.textContent = video.muted ? "🔇" : "🔊";
     }
 
     function toggleId() {
-      const span = document.getElementById("idValue");
-      if (span.innerText === myId) {
-        span.innerText = "••••••••••";
+      const idSpan = document.getElementById('idValue');
+      const toggleBtn = document.getElementById('toggleIdBtn');
+      if (idSpan.style.display === "none") {
+        idSpan.style.display = "inline";
+        toggleBtn.textContent = "👁️";
       } else {
-        span.innerText = myId;
+        idSpan.style.display = "none";
+        toggleBtn.textContent = "🙈";
       }
     }
   </script>
-
 </body>
 </html>
-
-
-
