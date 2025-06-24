@@ -2,15 +2,41 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Stormex Cast</title>
+  <title>Stormex Cast - Multi POV</title>
   <style>
     body {
       background: black;
       color: white;
-      text-align: center;
       font-family: sans-serif;
       margin: 0;
       padding: 0;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 10px 0;
+    }
+
+    #myId {
+      margin: 10px;
+      font-size: 14px;
+      user-select: text;
+    }
+
+    #idValue {
+      font-weight: bold;
+      margin-left: 5px;
+      user-select: text;
+    }
+
+    #toggleIdBtn {
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 16px;
+      user-select: none;
+      vertical-align: middle;
     }
 
     .player-container {
@@ -28,7 +54,7 @@
       object-fit: cover;
     }
 
-    /* Plein écran : la vidéo prend tout l'écran */
+    /* Plein écran: vidéo prend tout l'écran */
     .player-container:fullscreen video {
       width: 100vw;
       height: 100vh;
@@ -38,7 +64,6 @@
       background: black;
     }
 
-    /* Barre info plus petite */
     .info-bar {
       position: absolute;
       bottom: 2px;
@@ -51,6 +76,7 @@
       user-select: none;
       pointer-events: none;
       z-index: 10;
+      background: transparent;
     }
 
     .info-bar-top {
@@ -112,54 +138,49 @@
       outline: none;
     }
 
-    /* Styles pour l'ID du stream */
-    #myId {
-      margin: 10px;
+    /* Conteneur boutons partage */
+    #shareControls {
+      margin: 15px 0;
+    }
+
+    select, button {
       font-size: 14px;
-      user-select: text;
-    }
-
-    #idValue {
-      font-weight: bold;
-      margin-left: 5px;
-      user-select: text;
-    }
-
-    #toggleIdBtn {
-      background: transparent;
+      margin: 0 5px;
+      padding: 6px 10px;
+      border-radius: 4px;
       border: none;
-      color: white;
       cursor: pointer;
-      font-size: 16px;
-      user-select: none;
-      vertical-align: middle;
+    }
+
+    select {
+      min-width: 150px;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
 
-  <h1>🎥 Cast Stormex</h1>
+  <h1>🎥 Cast Stormex - Multi POV</h1>
 
   <p id="myId">Mon ID de stream :
     <span id="idValue">...</span>
     <button id="toggleIdBtn" onclick="toggleId()">👁️</button>
   </p>
 
-  <div>
+  <div id="shareControls">
     <select id="targetSlot">
-      <option value="fela">Slot : SOM FELA</option>
-      <option value="natoky">Slot : SOM NATOKY</option>
-      <option value="bema">Slot : SOM BEMA</option>
-      <option value="w1xy">Slot : SOM W1XY</option>
+      <option value="fela">SOM FELA</option>
+      <option value="natoky">SOM NATOKY</option>
+      <option value="bema">SOM BEMA</option>
+      <option value="w1xy">SOM W1XY</option>
     </select>
     <button onclick="startShare()">Partager mon écran</button>
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
+  <!-- Container & video pour chaque POV -->
   <div class="player-container" id="container-fela">
-    <video id="fela" autoplay muted></video>
-
+    <video id="fela" autoplay muted playsinline></video>
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -167,7 +188,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-fela">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('fela')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-fela')" title="Agrandir">⬜</button>
@@ -175,8 +195,7 @@
   </div>
 
   <div class="player-container" id="container-natoky">
-    <video id="natoky" autoplay muted></video>
-
+    <video id="natoky" autoplay muted playsinline></video>
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -184,7 +203,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-natoky">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('natoky')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-natoky')" title="Agrandir">⬜</button>
@@ -192,8 +210,7 @@
   </div>
 
   <div class="player-container" id="container-bema">
-    <video id="bema" autoplay muted></video>
-
+    <video id="bema" autoplay muted playsinline></video>
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -201,7 +218,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-bema">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('bema')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-bema')" title="Agrandir">⬜</button>
@@ -209,8 +225,7 @@
   </div>
 
   <div class="player-container" id="container-w1xy">
-    <video id="w1xy" autoplay muted></video>
-
+    <video id="w1xy" autoplay muted playsinline></video>
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -218,7 +233,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-w1xy">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('w1xy')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-w1xy')" title="Agrandir">⬜</button>
@@ -226,42 +240,59 @@
   </div>
 
   <script>
+    // Gère l'affichage du ID stream (montrer/cacher)
+    let idVisible = true;
+    function toggleId() {
+      const idSpan = document.getElementById('idValue');
+      idVisible = !idVisible;
+      idSpan.style.display = idVisible ? 'inline' : 'none';
+      document.getElementById('toggleIdBtn').textContent = idVisible ? '👁️' : '🚫';
+    }
+
+    // Initialisation PeerJS
     const peer = new Peer();
 
+    // Récupération des vidéos
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
       bema: document.getElementById('bema'),
-      w1xy: document.getElementById('w1xy')
+      w1xy: document.getElementById('w1xy'),
     };
 
+    // Conteneurs (pour fullscreen)
     const containers = {
       fela: document.getElementById('container-fela'),
       natoky: document.getElementById('container-natoky'),
       bema: document.getElementById('container-bema'),
-      w1xy: document.getElementById('container-w1xy')
+      w1xy: document.getElementById('container-w1xy'),
     };
 
+    // Stats affichées (à compléter plus tard avec API Fortnite Tracker)
     const statsElements = {
       fela: document.getElementById('stats-fela'),
       natoky: document.getElementById('stats-natoky'),
       bema: document.getElementById('stats-bema'),
-      w1xy: document.getElementById('stats-w1xy')
+      w1xy: document.getElementById('stats-w1xy'),
     };
 
+    // Stocke le stream qu’on partage
     let currentStream = null;
 
-    peer.on('open', id => {
+    peer.on('open', (id) => {
       document.getElementById("idValue").textContent = id;
+      console.log("PeerJS ouvert avec ID:", id);
     });
 
-    peer.on('call', call => {
-      call.answer();
-      const targetSlot = call.metadata?.slot;
-      call.on('stream', remoteStream => {
-        if (targetSlot && videoElements[targetSlot]) {
-          videoElements[targetSlot].srcObject = remoteStream;
+    // Réception d’appel PeerJS
+    peer.on('call', (call) => {
+      call.answer(); // On accepte la vidéo reçue
+      const slot = call.metadata?.slot;
+      call.on('stream', (remoteStream) => {
+        if (slot && videoElements[slot]) {
+          videoElements[slot].srcObject = remoteStream;
         } else {
+          // Si slot non défini, assigner à la première video sans stream
           for (const key in videoElements) {
             if (!videoElements[key].srcObject) {
               videoElements[key].srcObject = remoteStream;
@@ -270,23 +301,32 @@
           }
         }
       });
+      call.on('close', () => {
+        if (slot && videoElements[slot]) {
+          videoElements[slot].srcObject = null;
+          statsElements[slot].textContent = "Stream arrêté";
+        }
+      });
     });
 
+    // Démarrer le partage d’écran
     async function startShare() {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 60, max: 60 } }, audio: true });
         currentStream = stream;
-        const peerIdToCall = prompt("ID du joueur receveur :");
-        const slot = document.getElementById('targetSlot').value;
-
-        if (peerIdToCall) {
-          peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
+        const peerIdToCall = prompt("ID du joueur receveur à appeler :");
+        if (!peerIdToCall) {
+          alert("ID du joueur invalide");
+          return;
         }
+        const slot = document.getElementById('targetSlot').value;
+        peer.call(peerIdToCall, stream, { metadata: { slot: slot } });
       } catch (err) {
-        alert("Erreur : " + err.message);
+        alert("Erreur de partage d'écran : " + err.message);
       }
     }
 
+    // Arrêter le partage
     function stopShare() {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
@@ -294,6 +334,26 @@
       }
     }
 
-    function toggleMute(slotId) {
-      const video = video
+    // Mute / unmute la vidéo
+    function toggleMute(slot) {
+      const vid = videoElements[slot];
+      if (!vid) return;
+      vid.muted = !vid.muted;
+    }
 
+    // Plein écran container vidéo (le container)
+    function toggleFullscreen(containerId) {
+      const elem = containers[containerId];
+      if (!elem) return;
+
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch((err) => {
+          alert(`Erreur fullscreen : ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  </script>
+</body>
+</html>
