@@ -53,9 +53,11 @@
 <body>
 
   <h1>🎥 Cast Stormex</h1>
-  <p id="myId">Mon ID de stream : ...</p>
 
-  <!-- Contrôle de partage déplacé ici -->
+  <p id="myId">Mon ID de stream : <span id="idValue">...</span></p>
+  <button onclick="toggleId()">👁️ Afficher / Masquer l'ID</button>
+
+  <!-- Contrôle de partage -->
   <div>
     <select id="targetSlot">
       <option value="fela">Slot : SOM FELA</option>
@@ -64,6 +66,7 @@
       <option value="w1xy">Slot : SOM W1XY</option>
     </select>
     <button onclick="startShare()">Partager mon écran</button>
+    <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
   <!-- Les slots vidéo -->
@@ -89,6 +92,9 @@
 
   <script>
     const peer = new Peer();
+    let myId = "";
+    let localStream = null;
+
     const videoElements = {
       fela: document.getElementById('fela'),
       natoky: document.getElementById('natoky'),
@@ -97,7 +103,8 @@
     };
 
     peer.on('open', id => {
-      document.getElementById("myId").innerText = "Mon ID de stream : " + id;
+      myId = id;
+      document.getElementById("idValue").innerText = id;
     });
 
     peer.on('call', call => {
@@ -107,7 +114,6 @@
         if (targetSlot && videoElements[targetSlot]) {
           videoElements[targetSlot].srcObject = remoteStream;
         } else {
-          // Slot inconnu : on cherche un slot vide
           for (const key in videoElements) {
             if (!videoElements[key].srcObject) {
               videoElements[key].srcObject = remoteStream;
@@ -121,6 +127,7 @@
     async function startShare() {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        localStream = stream;
         const peerIdToCall = prompt("ID du joueur receveur :");
         const slot = document.getElementById('targetSlot').value;
 
@@ -129,6 +136,22 @@
         }
       } catch (err) {
         alert("Erreur : " + err.message);
+      }
+    }
+
+    function stopShare() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+      }
+    }
+
+    function toggleId() {
+      const span = document.getElementById("idValue");
+      if (span.innerText === myId) {
+        span.innerText = "••••••••••";
+      } else {
+        span.innerText = myId;
       }
     }
   </script>
