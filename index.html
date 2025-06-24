@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Stormex Cast</title>
   <style>
     body {
@@ -9,6 +9,8 @@
       color: white;
       text-align: center;
       font-family: sans-serif;
+      margin: 0;
+      padding: 0;
     }
 
     .player-container {
@@ -18,86 +20,90 @@
     }
 
     video {
-      width: 300px;
-      height: 200px;
+      width: 320px;
+      height: 180px;
       border: 2px solid white;
+      border-radius: 8px;
+      background: black;
+      object-fit: cover;
     }
 
-    .stats-overlay {
+    /* Barre info en bas, petit rectangle violet + blanc */
+    .info-bar {
       position: absolute;
-      bottom: 4px;
+      bottom: 3px; /* un peu plus haut que avant */
       left: 50%;
       transform: translateX(-50%);
-      width: 140px;
-      display: flex;
-      flex-direction: column;
-      font-size: 9px;
-      z-index: 2;
+      width: 180px;
+      font-size: 11px;
+      font-weight: normal;
+      border-radius: 0 0 6px 6px;
+      overflow: hidden;
+      user-select: none;
+      pointer-events: none;
+      z-index: 10;
     }
 
-    .stats-top {
-      background-color: #5c4b8b;
+    .info-bar-top {
+      background: #6a2c8a; /* violet */
       color: white;
       display: flex;
       align-items: center;
-      justify-content: center;
-      padding: 1px 4px;
-      height: 14px;
-      border-top-left-radius: 4px;
-      border-top-right-radius: 4px;
-    }
-
-    .stats-top img {
-      width: 10px;
-      height: 8px;
-      margin-right: 4px;
-    }
-
-    .stats-bottom {
-      background-color: white;
-      color: #5c4b8b;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 4px;
-      height: 14px;
-      border-bottom-left-radius: 4px;
-      border-bottom-right-radius: 4px;
+      padding: 3px 8px; /* un peu plus haut */
+      gap: 5px;
       font-weight: bold;
+      height: 22px; /* plus haut */
     }
 
-    .mute-button {
-      background: none;
-      border: none;
-      color: #5c4b8b;
-      cursor: pointer;
-      font-size: 10px;
-      padding: 0;
+    .info-bar-top img {
+      width: 16px;
+      height: 10px;
+      border-radius: 2px;
+      object-fit: cover;
+      flex-shrink: 0;
     }
 
-    #myId {
-      font-size: 16px;
-      color: yellow;
-      margin: 20px;
-    }
-
-    button, select {
+    .info-bar-bottom {
       background: white;
       color: black;
-      border: none;
-      padding: 5px 10px;
-      cursor: pointer;
-      margin: 5px;
-      font-weight: bold;
-      border-radius: 5px;
+      padding: 3px 6px; /* un peu plus haut */
+      height: 20px; /* plus haut */
+      font-weight: normal;
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    #toggleIdBtn {
-      background: transparent;
-      color: yellow;
-      font-size: 18px;
-      cursor: pointer;
+    /* Boutons Son & Agrandir */
+    .controls-bottom {
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      display: flex;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+
+    .control-button {
+      background: rgba(0, 0, 0, 0.6);
       border: none;
+      color: white;
+      font-size: 16px;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    /* Suppression du rectangle violet autour des emojis */
+    .control-button:focus {
+      outline: none;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
@@ -121,63 +127,71 @@
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
-  <!-- FELA -->
-  <div class="player-container">
+  <div class="player-container" id="container-fela">
     <video id="fela" autoplay muted></video>
-    <div class="stats-overlay">
-      <div class="stats-top">
-        <img src="https://flagcdn.com/fr.svg" alt="FR">
-        SOM FELA
+
+    <div class="info-bar">
+      <div class="info-bar-top">
+        <img src="https://flagcdn.com/w20/fr.png" alt="France" />
+        <span id="name-fela">SOM FELA</span>
       </div>
-      <div class="stats-bottom">
-        <span>123ᵉ • 56pts</span>
-        <button class="mute-button" onclick="toggleMute('fela')">🔇</button>
-      </div>
+      <div class="info-bar-bottom" id="stats-fela">Chargement des stats...</div>
+    </div>
+
+    <div class="controls-bottom">
+      <button class="control-button" onclick="toggleMute('fela')" title="Mute/Unmute">🔊</button>
+      <button class="control-button" onclick="toggleFullscreen('container-fela')" title="Agrandir">⬜</button>
     </div>
   </div>
 
-  <!-- NATOKY -->
-  <div class="player-container">
+  <div class="player-container" id="container-natoky">
     <video id="natoky" autoplay muted></video>
-    <div class="stats-overlay">
-      <div class="stats-top">
-        <img src="https://flagcdn.com/fr.svg" alt="FR">
-        SOM NATOKY
+
+    <div class="info-bar">
+      <div class="info-bar-top">
+        <img src="https://flagcdn.com/w20/fr.png" alt="France" />
+        <span id="name-natoky">SOM NATOKY</span>
       </div>
-      <div class="stats-bottom">
-        <span>98ᵉ • 63pts</span>
-        <button class="mute-button" onclick="toggleMute('natoky')">🔇</button>
-      </div>
+      <div class="info-bar-bottom" id="stats-natoky">Chargement des stats...</div>
+    </div>
+
+    <div class="controls-bottom">
+      <button class="control-button" onclick="toggleMute('natoky')" title="Mute/Unmute">🔊</button>
+      <button class="control-button" onclick="toggleFullscreen('container-natoky')" title="Agrandir">⬜</button>
     </div>
   </div>
 
-  <!-- BEMA -->
-  <div class="player-container">
+  <div class="player-container" id="container-bema">
     <video id="bema" autoplay muted></video>
-    <div class="stats-overlay">
-      <div class="stats-top">
-        <img src="https://flagcdn.com/fr.svg" alt="FR">
-        SOM BEMA
+
+    <div class="info-bar">
+      <div class="info-bar-top">
+        <img src="https://flagcdn.com/w20/fr.png" alt="France" />
+        <span id="name-bema">SOM BEMA</span>
       </div>
-      <div class="stats-bottom">
-        <span>75ᵉ • 72pts</span>
-        <button class="mute-button" onclick="toggleMute('bema')">🔇</button>
-      </div>
+      <div class="info-bar-bottom" id="stats-bema">Chargement des stats...</div>
+    </div>
+
+    <div class="controls-bottom">
+      <button class="control-button" onclick="toggleMute('bema')" title="Mute/Unmute">🔊</button>
+      <button class="control-button" onclick="toggleFullscreen('container-bema')" title="Agrandir">⬜</button>
     </div>
   </div>
 
-  <!-- W1XY -->
-  <div class="player-container">
+  <div class="player-container" id="container-w1xy">
     <video id="w1xy" autoplay muted></video>
-    <div class="stats-overlay">
-      <div class="stats-top">
-        <img src="https://flagcdn.com/fr.svg" alt="FR">
-        SOM W1XY
+
+    <div class="info-bar">
+      <div class="info-bar-top">
+        <img src="https://flagcdn.com/w20/fr.png" alt="France" />
+        <span id="name-w1xy">SOM W1XY</span>
       </div>
-      <div class="stats-bottom">
-        <span>110ᵉ • 41pts</span>
-        <button class="mute-button" onclick="toggleMute('w1xy')">🔇</button>
-      </div>
+      <div class="info-bar-bottom" id="stats-w1xy">Chargement des stats...</div>
+    </div>
+
+    <div class="controls-bottom">
+      <button class="control-button" onclick="toggleMute('w1xy')" title="Mute/Unmute">🔊</button>
+      <button class="control-button" onclick="toggleFullscreen('container-w1xy')" title="Agrandir">⬜</button>
     </div>
   </div>
 
@@ -188,6 +202,20 @@
       natoky: document.getElementById('natoky'),
       bema: document.getElementById('bema'),
       w1xy: document.getElementById('w1xy')
+    };
+
+    const containers = {
+      fela: document.getElementById('container-fela'),
+      natoky: document.getElementById('container-natoky'),
+      bema: document.getElementById('container-bema'),
+      w1xy: document.getElementById('container-w1xy')
+    };
+
+    const statsElements = {
+      fela: document.getElementById('stats-fela'),
+      natoky: document.getElementById('stats-natoky'),
+      bema: document.getElementById('stats-bema'),
+      w1xy: document.getElementById('stats-w1xy')
     };
 
     let currentStream = null;
@@ -237,9 +265,18 @@
 
     function toggleMute(slotId) {
       const video = document.getElementById(slotId);
-      const btn = video.parentElement.querySelector(".mute-button");
+      const btn = video.parentElement.querySelector(".control-button");
       video.muted = !video.muted;
       btn.textContent = video.muted ? "🔇" : "🔊";
+    }
+
+    function toggleFullscreen(containerId) {
+      const elem = document.getElementById(containerId);
+      if (!document.fullscreenElement) {
+        elem.requestFullscreen().catch(err => alert(`Erreur en plein écran: ${err.message}`));
+      } else {
+        document.exitFullscreen();
+      }
     }
 
     function toggleId() {
@@ -253,7 +290,43 @@
         toggleBtn.textContent = "🙈";
       }
     }
-  </script>
 
+    // URLs Fortnite Tracker pour récupérer les stats
+    const trackerProfiles = {
+      fela: "https://fortnitetracker.com/profile/all/SOM%20Felanigh_ttt",
+      bema: "https://fortnitetracker.com/profile/all/bema%20qual%20div%201",
+      natoky: "https://fortnitetracker.com/profile/all/Natokyks/events",
+      w1xy: "" // Ajouter si disponible
+    };
+
+    // Fonction simple de fetch et extraction de stats (exemple simplifié)
+    async function updateStats(playerKey) {
+      const statsEl = statsElements[playerKey];
+      const url = trackerProfiles[playerKey];
+      if (!url) {
+        statsEl.textContent = "Stats non disponibles";
+        return;
+      }
+
+      try {
+        // Fetch indirect impossible côté client à cause CORS,
+        // ici on simule avec un texte de test.
+        // En vrai, il faudrait un backend pour proxy la requête.
+        statsEl.textContent = "Stats mises à jour (simulation)";
+      } catch {
+        statsEl.textContent = "Erreur chargement stats";
+      }
+    }
+
+    // Mise à jour automatique périodique
+    setInterval(() => {
+      Object.keys(statsElements).forEach(updateStats);
+    }, 60000);
+
+    // Initial update
+    Object.keys(statsElements).forEach(updateStats);
+
+  </script>
 </body>
 </html>
+
