@@ -28,14 +28,13 @@
       object-fit: cover;
     }
 
-    /* Barre info en bas, petit rectangle violet + blanc */
     .info-bar {
       position: absolute;
-      bottom: 3px; /* un peu plus haut que avant */
+      bottom: 3px;
       left: 50%;
       transform: translateX(-50%);
-      width: 180px;
-      font-size: 11px;
+      width: 140px;
+      font-size: 9px;
       font-weight: normal;
       border-radius: 0 0 6px 6px;
       overflow: hidden;
@@ -45,19 +44,19 @@
     }
 
     .info-bar-top {
-      background: #6a2c8a; /* violet */
+      background: #6a2c8a;
       color: white;
       display: flex;
       align-items: center;
-      padding: 3px 8px; /* un peu plus haut */
-      gap: 5px;
+      padding: 2px 6px;
+      gap: 4px;
       font-weight: bold;
-      height: 22px; /* plus haut */
+      height: 18px;
     }
 
     .info-bar-top img {
-      width: 16px;
-      height: 10px;
+      width: 14px;
+      height: 9px;
       border-radius: 2px;
       object-fit: cover;
       flex-shrink: 0;
@@ -66,16 +65,15 @@
     .info-bar-bottom {
       background: white;
       color: black;
-      padding: 3px 6px; /* un peu plus haut */
-      height: 20px; /* plus haut */
+      padding: 2px 5px;
+      height: 16px;
       font-weight: normal;
-      font-size: 10px;
+      font-size: 8px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
-    /* Boutons Son & Agrandir */
     .controls-bottom {
       position: absolute;
       bottom: 5px;
@@ -101,7 +99,6 @@
       user-select: none;
     }
 
-    /* Suppression du rectangle violet autour des emojis */
     .control-button:focus {
       outline: none;
     }
@@ -127,9 +124,9 @@
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
+  <!-- Bloc vidéo pour chaque joueur -->
   <div class="player-container" id="container-fela">
     <video id="fela" autoplay muted></video>
-
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -137,7 +134,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-fela">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('fela')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-fela')" title="Agrandir">⬜</button>
@@ -146,7 +142,6 @@
 
   <div class="player-container" id="container-natoky">
     <video id="natoky" autoplay muted></video>
-
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -154,7 +149,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-natoky">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('natoky')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-natoky')" title="Agrandir">⬜</button>
@@ -163,7 +157,6 @@
 
   <div class="player-container" id="container-bema">
     <video id="bema" autoplay muted></video>
-
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -171,7 +164,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-bema">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('bema')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-bema')" title="Agrandir">⬜</button>
@@ -180,7 +172,6 @@
 
   <div class="player-container" id="container-w1xy">
     <video id="w1xy" autoplay muted></video>
-
     <div class="info-bar">
       <div class="info-bar-top">
         <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -188,7 +179,6 @@
       </div>
       <div class="info-bar-bottom" id="stats-w1xy">Chargement des stats...</div>
     </div>
-
     <div class="controls-bottom">
       <button class="control-button" onclick="toggleMute('w1xy')" title="Mute/Unmute">🔊</button>
       <button class="control-button" onclick="toggleFullscreen('container-w1xy')" title="Agrandir">⬜</button>
@@ -291,15 +281,13 @@
       }
     }
 
-    // URLs Fortnite Tracker pour récupérer les stats
     const trackerProfiles = {
       fela: "https://fortnitetracker.com/profile/all/SOM%20Felanigh_ttt",
       bema: "https://fortnitetracker.com/profile/all/bema%20qual%20div%201",
       natoky: "https://fortnitetracker.com/profile/all/Natokyks/events",
-      w1xy: "" // Ajouter si disponible
+      w1xy: ""
     };
 
-    // Fonction simple de fetch et extraction de stats (exemple simplifié)
     async function updateStats(playerKey) {
       const statsEl = statsElements[playerKey];
       const url = trackerProfiles[playerKey];
@@ -309,24 +297,17 @@
       }
 
       try {
-        // Fetch indirect impossible côté client à cause CORS,
-        // ici on simule avec un texte de test.
-        // En vrai, il faudrait un backend pour proxy la requête.
         statsEl.textContent = "Stats mises à jour (simulation)";
       } catch {
         statsEl.textContent = "Erreur chargement stats";
       }
     }
 
-    // Mise à jour automatique périodique
     setInterval(() => {
       Object.keys(statsElements).forEach(updateStats);
     }, 60000);
 
-    // Initial update
     Object.keys(statsElements).forEach(updateStats);
-
   </script>
 </body>
 </html>
-
