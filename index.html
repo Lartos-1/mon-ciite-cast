@@ -155,7 +155,7 @@
 
   <div id="videos">
     <div class="player-container" id="container-som-fela">
-      <video id="som-fela" autoplay muted></video>
+      <video id="som-fela" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
           <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -164,13 +164,13 @@
         <div class="info-bar-bottom" id="stats-som-fela"></div>
       </div>
       <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-fela')">🔊</button>
+        <button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
       </div>
     </div>
 
     <div class="player-container" id="container-som-natoky">
-      <video id="som-natoky" autoplay muted></video>
+      <video id="som-natoky" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
           <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -179,13 +179,13 @@
         <div class="info-bar-bottom" id="stats-som-natoky"></div>
       </div>
       <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-natoky')">🔊</button>
+        <button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
       </div>
     </div>
 
     <div class="player-container" id="container-som-bema">
-      <video id="som-bema" autoplay muted></video>
+      <video id="som-bema" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
           <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -194,13 +194,13 @@
         <div class="info-bar-bottom" id="stats-som-bema"></div>
       </div>
       <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-bema')">🔊</button>
+        <button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
       </div>
     </div>
 
     <div class="player-container" id="container-som-denzox">
-      <video id="som-denzox" autoplay muted></video>
+      <video id="som-denzox" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
           <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -209,13 +209,13 @@
         <div class="info-bar-bottom" id="stats-som-denzox"></div>
       </div>
       <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-denzox')">🔊</button>
+        <button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
       </div>
     </div>
 
     <div class="player-container" id="container-som-n1vek">
-      <video id="som-n1vek" autoplay muted></video>
+      <video id="som-n1vek" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
           <img src="https://flagcdn.com/w20/fr.png" alt="France" />
@@ -224,7 +224,7 @@
         <div class="info-bar-bottom" id="stats-som-n1vek"></div>
       </div>
       <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-n1vek')">🔊</button>
+        <button class="control-button" onclick="toggleMute('som-n1vek')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-n1vek')">⬜</button>
       </div>
     </div>
@@ -264,22 +264,22 @@
 
     function startShare() {
       const slot = document.getElementById('targetSlot').value;
-      if (!slot) return alert('Choisissez un slot !');
+      if (!slot) {
+        alert('Veuillez sélectionner un slot.');
+        return;
+      }
+      navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
+        currentStream = stream;
+        callToSlot(slot);
+      }).catch(err => {
+        alert('Erreur de capture d’écran : ' + err.message);
+      });
+    }
 
-      navigator.mediaDevices.getDisplayMedia({ video: true, audio: false })
-        .then(stream => {
-          currentStream = stream;
-          if (currentCall) currentCall.close();
-          const call = peer.call(myId, stream);
-          setupCallEvents(call);
-
-          if(videoElements[slot]) {
-            videoElements[slot].srcObject = stream;
-            videoElements[slot].muted = true;
-            videoElements[slot].play();
-          }
-        })
-        .catch(err => alert('Erreur partage écran : ' + err));
+    function callToSlot(slot) {
+      if (currentCall) currentCall.close();
+      currentCall = peer.call(slot, currentStream);
+      setupCallEvents(currentCall);
     }
 
     function stopShare() {
@@ -291,72 +291,70 @@
         currentCall.close();
         currentCall = null;
       }
-      Object.values(videoElements).forEach(video => {
-        video.srcObject = null;
-      });
     }
 
     function setupCallEvents(call) {
-      if (currentCall) currentCall.close();
-      currentCall = call;
       call.on('stream', remoteStream => {
-        // nothing for now
+        const slot = call.peer;
+        if (videoElements[slot]) {
+          videoElements[slot].srcObject = remoteStream;
+          videoElements[slot].play();
+          videoElements[slot].muted = false;
+        }
       });
       call.on('close', () => {
-        currentCall = null;
+        // Nettoyage vidéo
+        Object.values(videoElements).forEach(video => {
+          video.srcObject = null;
+          video.muted = true;
+        });
       });
     }
 
-    function toggleMute(id) {
-      const video = videoElements[id];
+    // Bouton mute/démute
+    function toggleMute(videoId) {
+      const video = document.getElementById(videoId);
       if (!video) return;
+
       video.muted = !video.muted;
+      const btn = video.parentElement.querySelector('.control-button');
+      if (btn) btn.textContent = video.muted ? '🔇' : '🔊';
     }
 
+    // Bouton plein écran
     function toggleFullscreen(containerId) {
-      const container = containers[containerId];
+      const container = document.getElementById(containerId);
       if (!container) return;
+
       if (!document.fullscreenElement) {
-        container.requestFullscreen();
+        if (container.requestFullscreen) {
+          container.requestFullscreen();
+        } else if (container.mozRequestFullScreen) {
+          container.mozRequestFullScreen();
+        } else if (container.webkitRequestFullscreen) {
+          container.webkitRequestFullscreen();
+        } else if (container.msRequestFullscreen) {
+          container.msRequestFullscreen();
+        }
       } else {
-        document.exitFullscreen();
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
       }
     }
 
-    let idVisible = true;
+    // Toggle affichage ID
     function toggleId() {
-      idVisible = !idVisible;
       const el = document.getElementById('idValue');
-      el.style.userSelect = idVisible ? 'text' : 'none';
-      el.style.color = idVisible ? 'white' : 'transparent';
+      el.style.display = el.style.display === 'none' ? 'inline' : 'none';
     }
 
+    // Cacher/afficher emojis hors cadre joueurs
     const toggleEmojisBtn = document.getElementById('toggleEmojisBtn');
     toggleEmojisBtn.addEventListener('click', () => {
       document.body.classList.toggle('hide-emojis');
     });
 
-    async function fetchFortniteStats() {
-      const players = ['som-denzox', 'som-n1vek', 'som-fela', 'som-natoky', 'som-bema'];
-      for (const player of players) {
-        try {
-          const res = await fetch(`/api/stats/${player}`);
-          if (!res.ok) throw new Error('Network response not ok');
-          const data = await res.json();
-
-          const statsElement = document.getElementById(`stats-${player}`);
-          if (statsElement) {
-            const statsText = `Kills: ${data.kills} | Wins: ${data.wins} | Matches: ${data.matches}`;
-            statsElement.textContent = statsText;
-          }
-        } catch (error) {
-          console.error(`Erreur stats ${player}:`, error);
-        }
-      }
-    }
-
-    setInterval(fetchFortniteStats, 30 * 1000);
-    fetchFortniteStats();
   </script>
 </body>
 </html>
