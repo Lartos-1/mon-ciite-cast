@@ -19,7 +19,7 @@
       margin: 10px;
       width: 320px;
       height: 180px;
-      border: 2px solid white;
+      border: 3px solid #6a2c8a;
       border-radius: 8px;
       overflow: hidden;
       background: black;
@@ -71,18 +71,6 @@
       flex-shrink: 0;
     }
 
-    .info-bar-bottom {
-      margin-top: 2px;
-      font-size: 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #ddd;
-      background: transparent;
-      user-select: none;
-      pointer-events: none;
-    }
-
     .controls-bottom {
       position: absolute;
       bottom: 5px;
@@ -129,6 +117,10 @@
     .player-container, .player-container * {
       visibility: visible !important;
     }
+
+    .hide {
+      display: none;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
@@ -136,7 +128,7 @@
   <h1>🎥 Cast Stormex</h1>
 
   <p id="myId">Mon ID de stream : <span id="idValue">...</span>
-    <button id="toggleIdBtn" onclick="toggleId()">👁️</button>
+    <button onclick="toggleId()">👁️</button>
   </p>
 
   <button id="toggleEmojisBtn" title="Cacher/afficher emojis et textes hors cadres joueurs">👁️‍🗨️</button>
@@ -153,15 +145,22 @@
     <button onclick="stopShare()">Arrêter le partage</button>
   </div>
 
+  <div>
+    <label><input type="checkbox" checked onchange="togglePOV('som-fela')"> SOM FELA</label>
+    <label><input type="checkbox" checked onchange="togglePOV('som-natoky')"> SOM NATOKY</label>
+    <label><input type="checkbox" checked onchange="togglePOV('som-bema')"> SOM BEMA</label>
+    <label><input type="checkbox" checked onchange="togglePOV('som-denzox')"> SOM DENZOX</label>
+    <label><input type="checkbox" checked onchange="togglePOV('som-n1vek')"> SOM N1VEK</label>
+  </div>
+
   <div id="videos">
     <div class="player-container" id="container-som-fela">
       <video id="som-fela" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" alt="France" />
-          <span id="name-som-fela">SOM FELA</span>
+          <img src="https://flagcdn.com/w20/fr.png" />
+          <span>SOM FELA</span>
         </div>
-        <div class="info-bar-bottom" id="stats-som-fela"></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
@@ -173,10 +172,9 @@
       <video id="som-natoky" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" alt="France" />
-          <span id="name-som-natoky">SOM NATOKY</span>
+          <img src="https://flagcdn.com/w20/fr.png" />
+          <span>SOM NATOKY</span>
         </div>
-        <div class="info-bar-bottom" id="stats-som-natoky"></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
@@ -188,10 +186,9 @@
       <video id="som-bema" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" alt="France" />
-          <span id="name-som-bema">SOM BEMA</span>
+          <img src="https://flagcdn.com/w20/fr.png" />
+          <span>SOM BEMA</span>
         </div>
-        <div class="info-bar-bottom" id="stats-som-bema"></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
@@ -203,10 +200,9 @@
       <video id="som-denzox" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" alt="France" />
-          <span id="name-som-denzox">SOM DENZOX</span>
+          <img src="https://flagcdn.com/w20/fr.png" />
+          <span>SOM DENZOX</span>
         </div>
-        <div class="info-bar-bottom" id="stats-som-denzox"></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
@@ -218,10 +214,9 @@
       <video id="som-n1vek" autoplay muted playsinline></video>
       <div class="info-bar">
         <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" alt="France" />
-          <span id="name-som-n1vek">SOM N1VEK</span>
+          <img src="https://flagcdn.com/w20/fr.png" />
+          <span>SOM N1VEK</span>
         </div>
-        <div class="info-bar-bottom" id="stats-som-n1vek"></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-n1vek')">🔇</button>
@@ -250,10 +245,8 @@
 
     let currentStream = null;
     let currentCall = null;
-    let myId = '';
 
     peer.on('open', id => {
-      myId = id;
       document.getElementById('idValue').textContent = id;
     });
 
@@ -264,22 +257,13 @@
 
     function startShare() {
       const slot = document.getElementById('targetSlot').value;
-      if (!slot) {
-        alert('Veuillez sélectionner un slot.');
-        return;
-      }
       navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
         currentStream = stream;
-        callToSlot(slot);
+        currentCall = peer.call(slot, stream);
+        setupCallEvents(currentCall);
       }).catch(err => {
-        alert('Erreur de capture d’écran : ' + err.message);
+        alert("Erreur : " + err.message);
       });
-    }
-
-    function callToSlot(slot) {
-      if (currentCall) currentCall.close();
-      currentCall = peer.call(slot, currentStream);
-      setupCallEvents(currentCall);
     }
 
     function stopShare() {
@@ -299,62 +283,41 @@
         if (videoElements[slot]) {
           videoElements[slot].srcObject = remoteStream;
           videoElements[slot].play();
-          videoElements[slot].muted = false;
         }
-      });
-      call.on('close', () => {
-        // Nettoyage vidéo
-        Object.values(videoElements).forEach(video => {
-          video.srcObject = null;
-          video.muted = true;
-        });
       });
     }
 
-    // Bouton mute/démute
     function toggleMute(videoId) {
       const video = document.getElementById(videoId);
-      if (!video) return;
-
       video.muted = !video.muted;
       const btn = video.parentElement.querySelector('.control-button');
       if (btn) btn.textContent = video.muted ? '🔇' : '🔊';
     }
 
-    // Bouton plein écran
     function toggleFullscreen(containerId) {
       const container = document.getElementById(containerId);
-      if (!container) return;
-
-      if (!document.fullscreenElement) {
-        if (container.requestFullscreen) {
-          container.requestFullscreen();
-        } else if (container.mozRequestFullScreen) {
-          container.mozRequestFullScreen();
-        } else if (container.webkitRequestFullscreen) {
-          container.webkitRequestFullscreen();
-        } else if (container.msRequestFullscreen) {
-          container.msRequestFullscreen();
-        }
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
       } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
+        container.requestFullscreen();
       }
     }
 
-    // Toggle affichage ID
     function toggleId() {
       const el = document.getElementById('idValue');
       el.style.display = el.style.display === 'none' ? 'inline' : 'none';
     }
 
-    // Cacher/afficher emojis hors cadre joueurs
-    const toggleEmojisBtn = document.getElementById('toggleEmojisBtn');
-    toggleEmojisBtn.addEventListener('click', () => {
+    document.getElementById('toggleEmojisBtn').addEventListener('click', () => {
       document.body.classList.toggle('hide-emojis');
     });
 
+    function togglePOV(id) {
+      const container = containers[id];
+      if (container) {
+        container.classList.toggle('hide');
+      }
+    }
   </script>
 </body>
 </html>
