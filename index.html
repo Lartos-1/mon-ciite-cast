@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Stormex Cast - Corrigé</title>
+  <title>Stormex Cast</title>
   <style>
     body {
       background: black;
@@ -12,6 +12,7 @@
       margin: 0;
       padding: 0;
     }
+
     .player-container {
       position: relative;
       display: inline-block;
@@ -23,6 +24,7 @@
       overflow: hidden;
       background: black;
     }
+
     video {
       width: 100%;
       height: 100%;
@@ -30,6 +32,7 @@
       background: black;
       border-radius: 8px;
     }
+
     .info-bar {
       position: absolute;
       bottom: 3px;
@@ -47,6 +50,7 @@
       background: rgba(0,0,0,0.5);
       padding: 4px 8px;
     }
+
     .info-bar-top {
       background: #6a2c8a;
       color: white;
@@ -58,6 +62,7 @@
       height: 22px;
       border-radius: 6px 6px 0 0;
     }
+
     .info-bar-top img {
       width: 16px;
       height: 10px;
@@ -65,6 +70,7 @@
       object-fit: cover;
       flex-shrink: 0;
     }
+
     .controls-bottom {
       position: absolute;
       bottom: 5px;
@@ -74,6 +80,7 @@
       pointer-events: auto;
       z-index: 20;
     }
+
     .control-button {
       background: rgba(0, 0, 0, 0.6);
       border: none;
@@ -88,9 +95,11 @@
       justify-content: center;
       user-select: none;
     }
+
     .control-button:focus {
       outline: none;
     }
+
     #toggleEmojisBtn {
       font-size: 24px;
       margin: 10px;
@@ -100,12 +109,15 @@
       color: white;
       user-select: none;
     }
+
     .hide-emojis *:not(.player-container):not(.player-container *) {
       visibility: hidden !important;
     }
+
     .player-container, .player-container * {
       visibility: visible !important;
     }
+
     .hide {
       display: none;
     }
@@ -113,7 +125,7 @@
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.4.7/dist/peerjs.min.js"></script>
 </head>
 <body>
-  <h1>🎥 Cast Stormex corrigé</h1>
+  <h1>🎥 Cast Stormex</h1>
 
   <p id="myId">Mon ID de stream : <span id="idValue">...</span>
     <button onclick="toggleId()">👁️</button>
@@ -200,7 +212,6 @@
 
   <script>
     const peer = new Peer();
-
     const videoElements = {
       'som-fela': document.getElementById('som-fela'),
       'som-natoky': document.getElementById('som-natoky'),
@@ -225,24 +236,29 @@
     });
 
     peer.on('call', call => {
-      // Toujours accepter la connexion et répondre avec un stream vide (audio et video disabled)
-      navigator.mediaDevices.getUserMedia({ video: false, audio: false }).then(emptyStream => {
-        call.answer(emptyStream); 
-        call.on('stream', remoteStream => {
-          // Demander le slot au viewer où afficher la vidéo
-          let slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema)");
+      // Répondre sans stream (uni-directionnel)
+      call.answer();
 
-          if (!slot || !videoElements[slot]) {
-            alert("Slot invalide ou non reconnu : " + slot);
-            return;
-          }
+      call.on('stream', remoteStream => {
+        let slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema, etc.)");
 
-          videoElements[slot].srcObject = remoteStream;
-          videoElements[slot].play();
+        if (!slot || !videoElements[slot]) {
+          alert("Slot inconnu : " + slot);
+          return;
+        }
 
-          // Assure que le container est visible si caché
-          containers[slot].classList.remove('hide');
-        });
+        videoElements[slot].srcObject = remoteStream;
+        videoElements[slot].play();
+        containers[slot].classList.remove('hide');
+      });
+
+      call.on('close', () => {
+        // Nettoyer la vidéo si appel fermé
+        let slot = prompt("Dans quel slot était ce stream fermé ?");
+        if (slot && videoElements[slot]) {
+          videoElements[slot].srcObject = null;
+          containers[slot].classList.add('hide');
+        }
       });
     });
 
@@ -260,11 +276,12 @@
         currentCall = peer.call(targetId, stream);
 
         currentCall.on('close', () => {
-          // Nettoyer la vidéo si l'appel est fermé
           if (videoElements[slot]) {
             videoElements[slot].srcObject = null;
+            containers[slot].classList.add('hide');
           }
         });
+
       }).catch(err => {
         alert("Erreur : " + err.message);
       });
@@ -306,13 +323,16 @@
       document.body.classList.toggle('hide-emojis');
     });
 
-    function togglePOV(id) {
-      const container = containers[id];
-      if (container) {
-        container.classList.toggle('hide');
+    function togglePOV(slot) {
+      if (containers[slot]) {
+        const checkbox = event.target;
+        if (checkbox.checked) {
+          containers[slot].classList.remove('hide');
+        } else {
+          containers[slot].classList.add('hide');
+        }
       }
     }
   </script>
 </body>
 </html>
-
