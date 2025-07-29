@@ -154,7 +154,6 @@
   </div>
 
   <div id="videos">
-    <!-- Les 5 slots vidéo -->
     <div class="player-container" id="container-som-fela">
       <video id="som-fela" autoplay muted playsinline></video>
       <div class="info-bar">
@@ -239,18 +238,13 @@
     peer.on('call', call => {
       call.answer();
       call.on('stream', remoteStream => {
-        const slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema)");
-        if (videoElements[slot]) {
-          videoElements[slot].srcObject = remoteStream;
-          videoElements[slot].play();
-        } else {
-          alert("Slot inconnu : " + slot);
-        }
+        // ici, le streamer a choisi où mettre le stream, pas besoin de demander au viewer
+        // ce bloc peut être vide si le viewer ne fait que recevoir
       });
     });
 
     function startShare() {
-      const targetId = prompt("Entre l'ID PeerJS de la personne à qui tu veux envoyer ton écran :");
+      const targetId = prompt("Entre l'ID PeerJS du viewer à qui tu veux envoyer ton écran :");
       const slot = document.getElementById('targetSlot').value;
 
       if (!targetId || !slot) {
@@ -261,12 +255,6 @@
       navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
         currentStream = stream;
         currentCall = peer.call(targetId, stream);
-        currentCall.on('stream', remoteStream => {
-          if (videoElements[slot]) {
-            videoElements[slot].srcObject = remoteStream;
-            videoElements[slot].play();
-          }
-        });
       }).catch(err => {
         alert("Erreur : " + err.message);
       });
