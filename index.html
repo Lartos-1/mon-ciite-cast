@@ -154,13 +154,11 @@
   </div>
 
   <div id="videos">
+    <!-- Les 5 slots vidéo -->
     <div class="player-container" id="container-som-fela">
       <video id="som-fela" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" />
-          <span>SOM FELA</span>
-        </div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM FELA</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
@@ -171,10 +169,7 @@
     <div class="player-container" id="container-som-natoky">
       <video id="som-natoky" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" />
-          <span>SOM NATOKY</span>
-        </div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM NATOKY</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
@@ -185,10 +180,7 @@
     <div class="player-container" id="container-som-bema">
       <video id="som-bema" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" />
-          <span>SOM BEMA</span>
-        </div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM BEMA</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
@@ -199,10 +191,7 @@
     <div class="player-container" id="container-som-denzox">
       <video id="som-denzox" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" />
-          <span>SOM DENZOX</span>
-        </div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM DENZOX</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
@@ -213,10 +202,7 @@
     <div class="player-container" id="container-som-n1vek">
       <video id="som-n1vek" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top">
-          <img src="https://flagcdn.com/w20/fr.png" />
-          <span>SOM N1VEK</span>
-        </div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM N1VEK</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-n1vek')">🔇</button>
@@ -251,16 +237,36 @@
     });
 
     peer.on('call', call => {
-      call.answer(currentStream);
-      setupCallEvents(call);
+      call.answer();
+      call.on('stream', remoteStream => {
+        const slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema)");
+        if (videoElements[slot]) {
+          videoElements[slot].srcObject = remoteStream;
+          videoElements[slot].play();
+        } else {
+          alert("Slot inconnu : " + slot);
+        }
+      });
     });
 
     function startShare() {
+      const targetId = prompt("Entre l'ID PeerJS de la personne à qui tu veux envoyer ton écran :");
       const slot = document.getElementById('targetSlot').value;
+
+      if (!targetId || !slot) {
+        alert("Tu dois entrer un ID et choisir un slot.");
+        return;
+      }
+
       navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
         currentStream = stream;
-        currentCall = peer.call(slot, stream);
-        setupCallEvents(currentCall);
+        currentCall = peer.call(targetId, stream);
+        currentCall.on('stream', remoteStream => {
+          if (videoElements[slot]) {
+            videoElements[slot].srcObject = remoteStream;
+            videoElements[slot].play();
+          }
+        });
       }).catch(err => {
         alert("Erreur : " + err.message);
       });
@@ -275,16 +281,6 @@
         currentCall.close();
         currentCall = null;
       }
-    }
-
-    function setupCallEvents(call) {
-      call.on('stream', remoteStream => {
-        const slot = call.peer;
-        if (videoElements[slot]) {
-          videoElements[slot].srcObject = remoteStream;
-          videoElements[slot].play();
-        }
-      });
     }
 
     function toggleMute(videoId) {
