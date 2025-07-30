@@ -139,7 +139,7 @@
       <option value="som-natoky">Slot : SOM NATOKY</option>
       <option value="som-bema">Slot : SOM BEMA</option>
       <option value="som-denzox">Slot : SOM DENZOX</option>
-      <option value="som-n1vek">Slot : SOM N1VEK</option>
+      <option value="som-n1vek">Slot : SOM SWEZYX</option>
     </select>
     <button onclick="startShare()">Partager mon écran</button>
     <button onclick="stopShare()">Arrêter le partage</button>
@@ -150,10 +150,11 @@
     <label><input type="checkbox" checked onchange="togglePOV('som-natoky')"> SOM NATOKY</label>
     <label><input type="checkbox" checked onchange="togglePOV('som-bema')"> SOM BEMA</label>
     <label><input type="checkbox" checked onchange="togglePOV('som-denzox')"> SOM DENZOX</label>
-    <label><input type="checkbox" checked onchange="togglePOV('som-n1vek')"> SOM N1VEK</label>
+    <label><input type="checkbox" checked onchange="togglePOV('som-n1vek')"> SOM SWEZYX</label>
   </div>
 
   <div id="videos">
+    <!-- Les 5 slots vidéo -->
     <div class="player-container" id="container-som-fela">
       <video id="som-fela" autoplay muted playsinline></video>
       <div class="info-bar">
@@ -201,7 +202,7 @@
     <div class="player-container" id="container-som-n1vek">
       <video id="som-n1vek" autoplay muted playsinline></video>
       <div class="info-bar">
-        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM N1VEK</span></div>
+        <div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM SWEZYX</span></div>
       </div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-n1vek')">🔇</button>
@@ -236,28 +237,14 @@
     });
 
     peer.on('call', call => {
-      // Répondre sans stream (uni-directionnel)
       call.answer();
-
       call.on('stream', remoteStream => {
-        let slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema, etc.)");
-
-        if (!slot || !videoElements[slot]) {
+        const slot = prompt("Dans quel slot afficher ce stream ? (ex: som-fela, som-bema)");
+        if (videoElements[slot]) {
+          videoElements[slot].srcObject = remoteStream;
+          videoElements[slot].play();
+        } else {
           alert("Slot inconnu : " + slot);
-          return;
-        }
-
-        videoElements[slot].srcObject = remoteStream;
-        videoElements[slot].play();
-        containers[slot].classList.remove('hide');
-      });
-
-      call.on('close', () => {
-        // Nettoyer la vidéo si appel fermé
-        let slot = prompt("Dans quel slot était ce stream fermé ?");
-        if (slot && videoElements[slot]) {
-          videoElements[slot].srcObject = null;
-          containers[slot].classList.add('hide');
         }
       });
     });
@@ -274,14 +261,12 @@
       navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
         currentStream = stream;
         currentCall = peer.call(targetId, stream);
-
-        currentCall.on('close', () => {
+        currentCall.on('stream', remoteStream => {
           if (videoElements[slot]) {
-            videoElements[slot].srcObject = null;
-            containers[slot].classList.add('hide');
+            videoElements[slot].srcObject = remoteStream;
+            videoElements[slot].play();
           }
         });
-
       }).catch(err => {
         alert("Erreur : " + err.message);
       });
@@ -323,14 +308,10 @@
       document.body.classList.toggle('hide-emojis');
     });
 
-    function togglePOV(slot) {
-      if (containers[slot]) {
-        const checkbox = event.target;
-        if (checkbox.checked) {
-          containers[slot].classList.remove('hide');
-        } else {
-          containers[slot].classList.add('hide');
-        }
+    function togglePOV(id) {
+      const container = containers[id];
+      if (container) {
+        container.classList.toggle('hide');
       }
     }
   </script>
