@@ -249,8 +249,19 @@
       call.answer();
       call.on('stream', remoteStream => {
         if (videoElements[slot]) {
-          videoElements[slot].srcObject = remoteStream;
-          videoElements[slot].play();
+          const vid = videoElements[slot];
+          vid.srcObject = remoteStream;
+          vid.playsInline = true;
+          vid.disablePictureInPicture = true;
+
+          // Relance auto si freeze
+          vid.addEventListener('loadedmetadata', () => vid.play().catch(()=>{}));
+
+          // Fluidité : synchro via requestVideoFrameCallback
+          const smoothRender = () => {
+            vid.requestVideoFrameCallback(() => smoothRender());
+          };
+          smoothRender();
         }
       });
     });
@@ -259,7 +270,14 @@
       const targetId = prompt("Entre l'ID PeerJS du viewer :");
       const slot = document.getElementById('targetSlot').value;
       if (!targetId || !slot) return;
-      navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
+      navigator.mediaDevices.getDisplayMedia({
+        video: {
+          frameRate: { ideal: 60, max: 60 },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: true
+      }).then(stream => {
         currentStream = stream;
         currentCall = peer.call(targetId, stream, { metadata: { slot } });
       });
@@ -322,4 +340,3 @@
   </script>
 </body>
 </html>
- 
