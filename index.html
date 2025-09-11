@@ -173,7 +173,6 @@
       </div>
     </div>
 
-    <!-- répété pour chaque slot -->
     <div class="player-container" id="container-som-natoky">
       <button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
       <video id="som-natoky" autoplay playsinline></video>
@@ -252,9 +251,16 @@
           vid.srcObject = remoteStream;
           vid.playsInline = true;
           vid.disablePictureInPicture = true;
-          vid.muted = true; // démarrage muted
-          
-          vid.addEventListener('loadedmetadata', () => vid.play().catch(()=>{}));
+
+          vid.addEventListener('loadedmetadata', () => {
+            vid.play().catch(()=>{});
+            const smoothRender = () => {
+              vid.requestVideoFrameCallback(() => smoothRender());
+            };
+            smoothRender();
+          });
+
+          // Débloquer le son si clic
           vid.addEventListener('click', () => {
             vid.muted = false;
             vid.volume = 1;
@@ -278,6 +284,9 @@
       }).then(stream => {
         currentStream = stream;
         currentCall = peer.call(targetId, stream, { metadata: { slot } });
+
+        // Booster la qualité / bitrate
+        setTimeout(() => setMaxBitrate(currentCall, 8000), 1000);
       });
     }
 
@@ -295,7 +304,6 @@
     function toggleMute(id) {
       const v = document.getElementById(id);
       const btn = v.parentElement.querySelector('.control-button');
-
       if (v.muted || v.volume === 0) {
         v.muted = false;
         v.volume = 1;
@@ -336,10 +344,29 @@
         container.style.display = 'none';
       }
 
+      // Synchroniser la checkbox
       const checkboxes = document.querySelectorAll("input[type=checkbox]");
       checkboxes.forEach(chk => {
         if (chk.nextSibling && chk.nextSibling.textContent.toLowerCase().includes(id.toLowerCase())) {
           chk.checked = container.style.display !== 'none';
+        }
+      });
+    }
+
+    function setMaxBitrate(call, kbps = 5000) {
+      if (!call || !call.peerConnection) return;
+      call.peerConnection.getSenders().forEach(sender => {
+        if (sender.track && sender.track.kind === "video") {
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          params.encodings[0].maxBitrate = kbps * 1000;
+          sender.setParameters(params).catch(()=>{});
+        }
+        if (sender.track && sender.track.kind === "audio") {
+          const params = sender.getParameters();
+          if (!params.encodings) params.encodings = [{}];
+          params.encodings[0].maxBitrate = 128 * 1000;
+          sender.setParameters(params).catch(()=>{});
         }
       });
     }
