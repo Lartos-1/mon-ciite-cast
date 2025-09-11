@@ -109,8 +109,6 @@
     .hide {
       display: none;
     }
-
-    /* Bouton œil */
     .toggle-eye-btn {
       position: absolute;
       top: 6px;
@@ -167,7 +165,7 @@
   <div id="videos">
     <div class="player-container" id="container-som-fela">
       <button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
-      <video id="som-fela" autoplay muted playsinline></video>
+      <video id="som-fela" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM FELA</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
@@ -175,9 +173,10 @@
       </div>
     </div>
 
+    <!-- répété pour chaque slot -->
     <div class="player-container" id="container-som-natoky">
       <button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
-      <video id="som-natoky" autoplay muted playsinline></video>
+      <video id="som-natoky" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM NATOKY</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
@@ -187,7 +186,7 @@
 
     <div class="player-container" id="container-som-bema">
       <button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
-      <video id="som-bema" autoplay muted playsinline></video>
+      <video id="som-bema" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM BEMA</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
@@ -197,7 +196,7 @@
 
     <div class="player-container" id="container-som-denzox">
       <button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
-      <video id="som-denzox" autoplay muted playsinline></video>
+      <video id="som-denzox" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM DENZOX</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
@@ -207,7 +206,7 @@
 
     <div class="player-container" id="container-som-noxy">
       <button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
-      <video id="som-noxy" autoplay muted playsinline></video>
+      <video id="som-noxy" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM NOXY</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-noxy')">🔇</button>
@@ -217,7 +216,7 @@
 
     <div class="player-container" id="container-som-swezyx">
       <button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
-      <video id="som-swezyx" autoplay muted playsinline></video>
+      <video id="som-swezyx" autoplay playsinline></video>
       <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM SWEZYX</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-swezyx')">🔇</button>
@@ -253,15 +252,14 @@
           vid.srcObject = remoteStream;
           vid.playsInline = true;
           vid.disablePictureInPicture = true;
-
-          // Relance auto si freeze
+          vid.muted = true; // démarrage muted
+          
           vid.addEventListener('loadedmetadata', () => vid.play().catch(()=>{}));
-
-          // Fluidité : synchro via requestVideoFrameCallback
-          const smoothRender = () => {
-            vid.requestVideoFrameCallback(() => smoothRender());
-          };
-          smoothRender();
+          vid.addEventListener('click', () => {
+            vid.muted = false;
+            vid.volume = 1;
+            vid.play().catch(()=>{});
+          });
         }
       });
     });
@@ -296,9 +294,18 @@
 
     function toggleMute(id) {
       const v = document.getElementById(id);
-      v.muted = !v.muted;
       const btn = v.parentElement.querySelector('.control-button');
-      if (btn) btn.textContent = v.muted ? '🔇' : '🔊';
+
+      if (v.muted || v.volume === 0) {
+        v.muted = false;
+        v.volume = 1;
+        btn.textContent = '🔊';
+        v.play().catch(()=>{});
+      } else {
+        v.muted = true;
+        v.volume = 0;
+        btn.textContent = '🔇';
+      }
     }
 
     function toggleFullscreen(id) {
@@ -329,7 +336,6 @@
         container.style.display = 'none';
       }
 
-      // Synchroniser la checkbox
       const checkboxes = document.querySelectorAll("input[type=checkbox]");
       checkboxes.forEach(chk => {
         if (chk.nextSibling && chk.nextSibling.textContent.toLowerCase().includes(id.toLowerCase())) {
@@ -340,3 +346,4 @@
   </script>
 </body>
 </html>
+
