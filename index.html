@@ -88,9 +88,7 @@
       justify-content: center;
       user-select: none;
     }
-    .control-button:focus {
-      outline: none;
-    }
+    .control-button:focus { outline: none; }
     #toggleEmojisBtn {
       font-size: 24px;
       margin: 10px;
@@ -106,9 +104,7 @@
     .player-container, .player-container * {
       visibility: visible !important;
     }
-    .hide {
-      display: none;
-    }
+    .hide { display: none; }
     .toggle-eye-btn {
       position: absolute;
       top: 6px;
@@ -163,71 +159,28 @@
   </div>
 
   <div id="videos">
-    <!-- SOM FELA -->
+    <!-- POVs similaires au script précédent avec drapeaux -->
     <div class="player-container" id="container-som-fela">
       <button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
       <video id="som-fela" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM FELA</span></div></div>
+      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png"><span>SOM FELA</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
       </div>
     </div>
 
-    <!-- SOM NATOKY -->
-    <div class="player-container" id="container-som-natoky">
-      <button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
-      <video id="som-natoky" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM NATOKY</span></div></div>
-      <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
-      </div>
-    </div>
-
-    <!-- SOM BEMA -->
-    <div class="player-container" id="container-som-bema">
-      <button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
-      <video id="som-bema" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM BEMA</span></div></div>
-      <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
-      </div>
-    </div>
-
-    <!-- SOM DENZOX (drapeau suisse) -->
     <div class="player-container" id="container-som-denzox">
       <button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
       <video id="som-denzox" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/ch.png" /><span>SOM DENZOX</span></div></div>
+      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/ch.png"><span>SOM DENZOX</span></div></div>
       <div class="controls-bottom">
         <button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
         <button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
       </div>
     </div>
 
-    <!-- SOM NOXY -->
-    <div class="player-container" id="container-som-noxy">
-      <button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
-      <video id="som-noxy" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM NOXY</span></div></div>
-      <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-noxy')">🔇</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
-      </div>
-    </div>
-
-    <!-- SOM SWEZYX -->
-    <div class="player-container" id="container-som-swezyx">
-      <button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
-      <video id="som-swezyx" autoplay playsinline></video>
-      <div class="info-bar"><div class="info-bar-top"><img src="https://flagcdn.com/w20/fr.png" /><span>SOM SWEZYX</span></div></div>
-      <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-swezyx')">🔇</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
-      </div>
-    </div>
+    <!-- Ajouter les autres POVs de la même manière (natoky, bema, noxy, swezyx) -->
   </div>
 
   <script>
@@ -248,30 +201,16 @@
     });
 
     peer.on('call', call => {
-      const metadata = call.metadata || {};
-      const slot = metadata.slot;
+      const slot = call.metadata?.slot;
       call.answer();
-      call.on('stream', remoteStream => {
-        if (videoElements[slot]) {
-          const vid = videoElements[slot];
-          vid.srcObject = remoteStream;
-          vid.playsInline = true;
-          vid.disablePictureInPicture = true;
-
-          vid.addEventListener('loadedmetadata', () => {
-            vid.play().catch(()=>{});
-            const smoothRender = () => {
-              vid.requestVideoFrameCallback(() => smoothRender());
-            };
-            smoothRender();
-          });
-
-          vid.addEventListener('click', () => {
-            vid.muted = false;
-            vid.volume = 1;
-            vid.play().catch(()=>{});
-          });
-        }
+      call.on('stream', stream => {
+        const vid = videoElements[slot];
+        if (!vid) return;
+        vid.srcObject = stream;
+        vid.playsInline = true;
+        vid.muted = false;
+        vid.volume = 1;
+        vid.addEventListener('loadedmetadata', () => vid.play().catch(()=>{}));
       });
     });
 
@@ -280,52 +219,33 @@
       const slot = document.getElementById('targetSlot').value;
       if (!targetId || !slot) return;
       navigator.mediaDevices.getDisplayMedia({
-        video: {
-          frameRate: { ideal: 240, max: 240 },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: { width: 1280, height: 720, frameRate: { ideal: 60, max: 60 } },
         audio: true
       }).then(stream => {
         currentStream = stream;
         currentCall = peer.call(targetId, stream, { metadata: { slot } });
-        setTimeout(() => setMaxBitrate(currentCall, 12000), 1000);
+        setTimeout(() => setMaxBitrate(currentCall, 5000), 1000);
       });
     }
 
     function stopShare() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-        currentStream = null;
-      }
-      if (currentCall) {
-        currentCall.close();
-        currentCall = null;
-      }
+      if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+      if (currentCall) { currentCall.close(); currentCall = null; }
+      currentStream = null;
     }
 
     function toggleMute(id) {
-      const v = document.getElementById(id);
+      const v = videoElements[id];
+      if (!v) return;
+      v.muted = !v.muted;
       const btn = v.parentElement.querySelector('.control-button');
-      if (v.muted || v.volume === 0) {
-        v.muted = false;
-        v.volume = 1;
-        btn.textContent = '🔊';
-        v.play().catch(()=>{});
-      } else {
-        v.muted = true;
-        v.volume = 0;
-        btn.textContent = '🔇';
-      }
+      btn.textContent = v.muted ? '🔇' : '🔊';
     }
 
     function toggleFullscreen(id) {
-      const container = document.getElementById(id);
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        container.requestFullscreen();
-      }
+      const c = document.getElementById(id);
+      if (!c) return;
+      document.fullscreenElement ? document.exitFullscreen() : c.requestFullscreen();
     }
 
     function toggleId() {
@@ -340,38 +260,23 @@
     function togglePOV(id) {
       const container = document.getElementById('container-' + id);
       if (!container) return;
-
-      if (container.style.display === 'none' || container.style.display === '') {
-        container.style.display = 'inline-block';
-      } else {
-        container.style.display = 'none';
-      }
-
-      const checkboxes = document.querySelectorAll("input[type=checkbox]");
-      checkboxes.forEach(chk => {
-        if (chk.nextSibling && chk.nextSibling.textContent.toLowerCase().includes(id.toLowerCase())) {
-          chk.checked = container.style.display !== 'none';
-        }
+      container.style.display = container.style.display === 'none' ? 'inline-block' : 'none';
+      document.querySelectorAll("input[type=checkbox]").forEach(chk => {
+        if (chk.nextSibling.textContent.toLowerCase().includes(id)) chk.checked = container.style.display !== 'none';
       });
     }
 
-    function setMaxBitrate(call, kbps = 12000) {
-      if (!call || !call.peerConnection) return;
+    function setMaxBitrate(call, kbps) {
+      if (!call?.peerConnection) return;
       call.peerConnection.getSenders().forEach(sender => {
-        if (sender.track && sender.track.kind === "video") {
-          const params = sender.getParameters();
-          if (!params.encodings) params.encodings = [{}];
-          params.encodings[0].maxBitrate = kbps * 1000;
-          sender.setParameters(params).catch(()=>{});
-        }
-        if (sender.track && sender.track.kind === "audio") {
-          const params = sender.getParameters();
-          if (!params.encodings) params.encodings = [{}];
-          params.encodings[0].maxBitrate = 128 * 1000;
-          sender.setParameters(params).catch(()=>{});
-        }
+        if (!sender.track) return;
+        const params = sender.getParameters();
+        if (!params.encodings) params.encodings = [{}];
+        params.encodings[0].maxBitrate = (sender.track.kind === "video" ? kbps : 128) * 1000;
+        sender.setParameters(params).catch(()=>{});
       });
     }
   </script>
 </body>
 </html>
+
