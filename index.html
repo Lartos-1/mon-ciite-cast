@@ -2,49 +2,154 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Cast Stormex - Optimisé</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Cast Stormex</title>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <style>
-body {
-  font-family: Arial;
-  background: #111;
-  color: white;
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:Arial, Helvetica, sans-serif;
+background:#0a0a0f;
+color:white;
+text-align:center;
 }
 
-.player-container {
-  display: inline-block;
-  margin: 10px;
-  background: #1c1c1c;
-  padding: 8px;
-  border-radius: 10px;
-  width: 320px;
-  contain: layout paint style;
+/* TITLE */
+h1{
+margin-top:18px;
+font-size:22px;
+font-weight:800;
+color:#a855f7;
+text-shadow:0 0 12px rgba(168,85,247,0.7);
 }
 
-video {
-  width: 100%;
-  border-radius: 8px;
-  background: black;
-  will-change: transform;
-  transform: translateZ(0);
+/* ID BAR */
+#myId{
+display:inline-block;
+background:#141422;
+padding:8px 14px;
+border-radius:10px;
+border:1px solid #2a2a40;
+margin-bottom:10px;
 }
 
-.controls-bottom button {
-  margin: 2px;
+/* CONTROLS */
+button, select{
+padding:10px 12px;
+margin:5px;
+border-radius:10px;
+border:1px solid #2a2a40;
+background:#151524;
+color:white;
+font-weight:bold;
+cursor:pointer;
+transition:0.2s;
 }
 
-.hide-emojis .toggle-eye-btn {
-  display: none;
+button:hover, select:hover{
+border-color:#a855f7;
+background:#1f1f35;
+}
+
+/* CHECKBOXES */
+label{
+display:inline-block;
+margin:5px;
+padding:6px 10px;
+border-radius:8px;
+background:#141422;
+border:1px solid #2a2a40;
+}
+
+label:hover{
+border-color:#a855f7;
+}
+
+/* GRID */
+#videos{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+gap:15px;
+padding:20px;
+}
+
+/* CARD */
+.player-container{
+background:#12121c;
+border-radius:16px;
+padding:10px;
+position:relative;
+border:1px solid #24243a;
+}
+
+/* VIDEO */
+video{
+width:100%;
+border-radius:12px;
+background:black;
+}
+
+/* STREAM NAME */
+.info-bar{
+position:absolute;
+top:10px;
+left:10px;
+background:rgba(0,0,0,0.75);
+padding:4px 10px;
+border-radius:8px;
+font-size:12px;
+border:1px solid #a855f7;
+}
+
+/* CONTROLS */
+.controls-bottom{
+margin-top:8px;
+display:flex;
+justify-content:center;
+gap:10px;
+}
+
+.control-button{
+background:#151524;
+border:1px solid #2a2a40;
+border-radius:8px;
+padding:6px 10px;
+}
+
+.control-button:hover{
+border-color:#a855f7;
+}
+
+/* EYE BUTTON */
+.toggle-eye-btn{
+position:absolute;
+top:8px;
+right:8px;
+background:#151524;
+border:1px solid #2a2a40;
+border-radius:8px;
+padding:4px 8px;
+cursor:pointer;
+}
+
+.toggle-eye-btn:hover{
+border-color:#a855f7;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🎥 Cast Stormex (Optimisé)</h1>
+<h1>🎥 Cast Stormex</h1>
 
-<p>
-Mon ID : <span id="idValue">...</span>
+<p id="myId">
+Mon ID de stream :
+<span id="idValue">loading...</span>
 <button onclick="toggleId()">👁️</button>
 </p>
 
@@ -52,198 +157,173 @@ Mon ID : <span id="idValue">...</span>
 
 <div>
 <select id="targetSlot">
-  <option value="som-fela">SOM FELA</option>
-  <option value="som-natoky">SOM NATOKY</option>
-  <option value="som-bema">SOM BEMA</option>
-  <option value="som-denzox">SOM DENZOX</option>
-  <option value="som-noxy">SOM NOXY</option>
-  <option value="som-swezyx">SOM SWEZYX</option>
+  <option value="som-fela">Slot : SOM FELA</option>
+  <option value="som-natoky">Slot : SOM NATOKY</option>
+  <option value="som-bema">Slot : SOM BEMA</option>
+  <option value="som-denzox">Slot : SOM DENZOX</option>
+  <option value="som-noxy">Slot : SOM NOXY</option>
+  <option value="som-swezyx">Slot : SOM SWEZYX</option>
 </select>
 
-<button onclick="startShare()">Partager écran</button>
-<button onclick="stopShare()">Stop</button>
+<button onclick="startShare()">Partager mon écran</button>
+<button onclick="stopShare()">Arrêter</button>
 </div>
 
-<hr>
+<div>
+<label><input type="checkbox" checked onchange="togglePOV('som-fela')"> SOM FELA</label>
+<label><input type="checkbox" checked onchange="togglePOV('som-natoky')"> SOM NATOKY</label>
+<label><input type="checkbox" checked onchange="togglePOV('som-bema')"> SOM BEMA</label>
+<label><input type="checkbox" checked onchange="togglePOV('som-denzox')"> SOM DENZOX</label>
+<label><input type="checkbox" checked onchange="togglePOV('som-noxy')"> SOM NOXY</label>
+<label><input type="checkbox" checked onchange="togglePOV('som-swezyx')"> SOM SWEZYX</label>
+</div>
 
 <div id="videos">
 
 <!-- FELA -->
 <div class="player-container" id="container-som-fela">
-<button onclick="togglePOV('som-fela')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
 <video id="som-fela" autoplay playsinline></video>
-<button onclick="toggleMute('som-fela', this)">🔇</button>
+<div class="info-bar">SOM FELA</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-fela')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
+</div>
 </div>
 
 <!-- NATOKY -->
 <div class="player-container" id="container-som-natoky">
-<button onclick="togglePOV('som-natoky')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
 <video id="som-natoky" autoplay playsinline></video>
-<button onclick="toggleMute('som-natoky', this)">🔇</button>
+<div class="info-bar">SOM NATOKY</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-natoky')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
+</div>
 </div>
 
 <!-- BEMA -->
 <div class="player-container" id="container-som-bema">
-<button onclick="togglePOV('som-bema')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
 <video id="som-bema" autoplay playsinline></video>
-<button onclick="toggleMute('som-bema', this)">🔇</button>
+<div class="info-bar">SOM BEMA</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-bema')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
+</div>
 </div>
 
 <!-- DENZOX -->
 <div class="player-container" id="container-som-denzox">
-<button onclick="togglePOV('som-denzox')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
 <video id="som-denzox" autoplay playsinline></video>
-<button onclick="toggleMute('som-denzox', this)">🔇</button>
+<div class="info-bar">SOM DENZOX</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-denzox')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
+</div>
 </div>
 
 <!-- NOXY -->
 <div class="player-container" id="container-som-noxy">
-<button onclick="togglePOV('som-noxy')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
 <video id="som-noxy" autoplay playsinline></video>
-<button onclick="toggleMute('som-noxy', this)">🔇</button>
+<div class="info-bar">SOM NOXY</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-noxy')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
+</div>
 </div>
 
 <!-- SWEZYX -->
 <div class="player-container" id="container-som-swezyx">
-<button onclick="togglePOV('som-swezyx')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
 <video id="som-swezyx" autoplay playsinline></video>
-<button onclick="toggleMute('som-swezyx', this)">🔇</button>
+<div class="info-bar">SOM SWEZYX</div>
+<div class="controls-bottom">
+<button class="control-button" onclick="toggleMute('som-swezyx')">🔇</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
+</div>
 </div>
 
 </div>
-
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 <script>
-/* 🔥 PEER OPTIMISÉ */
-const peer = new Peer(undefined, {
-  config: {
-    iceServers: [
-      { urls: "stun:stun.l.google.com:19302" }
-    ]
-  }
-});
+const peer = new Peer();
 
-const videos = {
-  'som-fela': document.getElementById('som-fela'),
-  'som-natoky': document.getElementById('som-natoky'),
-  'som-bema': document.getElementById('som-bema'),
-  'som-denzox': document.getElementById('som-denzox'),
-  'som-noxy': document.getElementById('som-noxy'),
-  'som-swezyx': document.getElementById('som-swezyx')
+const videoElements = {
+'som-fela': document.getElementById('som-fela'),
+'som-natoky': document.getElementById('som-natoky'),
+'som-bema': document.getElementById('som-bema'),
+'som-denzox': document.getElementById('som-denzox'),
+'som-noxy': document.getElementById('som-noxy'),
+'som-swezyx': document.getElementById('som-swezyx')
 };
 
-let stream = null;
-let call = null;
+let currentStream = null;
+let currentCall = null;
 
-/* ID */
 peer.on('open', id => {
-  document.getElementById('idValue').textContent = id;
+document.getElementById('idValue').textContent = id;
 });
 
-/* RECEIVE STREAM */
 peer.on('call', call => {
-  const slot = call.metadata?.slot;
+const slot = call.metadata?.slot;
+call.answer();
 
-  call.answer();
-
-  call.on('stream', remoteStream => {
-    const v = videos[slot];
-    if (!v) return;
-
-    v.srcObject = remoteStream;
-    v.playsInline = true;
-
-    v.onloadedmetadata = () => {
-      v.play().catch(()=>{});
-    };
-  });
+call.on('stream', stream => {
+const v = videoElements[slot];
+if(!v) return;
+v.srcObject = stream;
+v.play().catch(()=>{});
+});
 });
 
-/* SHARE SCREEN */
-async function startShare() {
-  const target = prompt("ID viewer ?");
-  const slot = document.getElementById("targetSlot").value;
+function startShare(){
+const id = prompt("Peer ID:");
+const slot = document.getElementById('targetSlot').value;
 
-  if (!target) return;
-
-  stream = await navigator.mediaDevices.getDisplayMedia({
-    video: {
-      frameRate: 30,
-      width: 1280,
-      height: 720
-    },
-    audio: true
-  });
-
-  call = peer.call(target, stream, { metadata: { slot } });
-
-  setTimeout(() => setBitrate(call, 2500), 1000);
-}
-
-/* STOP */
-function stopShare() {
-  if (stream) stream.getTracks().forEach(t => t.stop());
-  if (call) call.close();
-}
-
-/* BITRATE FIX */
-function setBitrate(call, kbps) {
-  if (!call?.peerConnection) return;
-
-  call.peerConnection.getSenders().forEach(sender => {
-    if (!sender.track) return;
-
-    const params = sender.getParameters();
-    if (!params.encodings) params.encodings = [{}];
-
-    if (sender.track.kind === "video") {
-      params.encodings[0].maxBitrate = kbps * 1000;
-      params.encodings[0].maxFramerate = 30;
-    }
-
-    sender.setParameters(params).catch(()=>{});
-  });
-}
-
-/* MUTE FIX */
-function toggleMute(id, btn) {
-  const v = document.getElementById(id);
-  v.muted = !v.muted;
-  v.volume = v.muted ? 0 : 1;
-  btn.textContent = v.muted ? "🔇" : "🔊";
-}
-
-/* TOGGLE SLOT */
-function togglePOV(id) {
-  const el = document.getElementById("container-" + id);
-  el.style.display = (el.style.display === "none") ? "inline-block" : "none";
-}
-
-/* UI */
-function toggleId() {
-  const el = document.getElementById("idValue");
-  el.style.display = (el.style.display === "none") ? "inline" : "none";
-}
-
-document.getElementById("toggleEmojisBtn").onclick = () => {
-  document.body.classList.toggle("hide-emojis");
-};
-
-/* 🔥 PERF BOOST : pause vidéos hors écran */
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    const v = e.target.querySelector("video");
-    if (!v) return;
-
-    if (e.isIntersecting) v.play().catch(()=>{});
-    else v.pause();
-  });
+navigator.mediaDevices.getDisplayMedia({video:true,audio:true})
+.then(stream=>{
+currentStream = stream;
+currentCall = peer.call(id, stream, {metadata:{slot}});
 });
+}
 
-document.querySelectorAll(".player-container").forEach(el => {
-  observer.observe(el);
-});
+function stopShare(){
+if(currentStream){
+currentStream.getTracks().forEach(t=>t.stop());
+currentStream=null;
+}
+if(currentCall){
+currentCall.close();
+currentCall=null;
+}
+}
+
+function toggleMute(id){
+const v=document.getElementById(id);
+v.muted=!v.muted;
+v.volume=v.muted?0:1;
+}
+
+function toggleFullscreen(id){
+const el=document.getElementById(id);
+document.fullscreenElement?document.exitFullscreen():el.requestFullscreen();
+}
+
+function toggleId(){
+const el=document.getElementById("idValue");
+el.style.display = el.style.display==="none"?"inline":"none";
+}
+
+function togglePOV(id){
+const c=document.getElementById("container-"+id);
+c.style.display = (c.style.display==="none")?"block":"none";
+}
+
+document.getElementById("toggleEmojisBtn")
+.addEventListener("click",()=>document.body.classList.toggle("hide"));
 </script>
 
 </body>
