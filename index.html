@@ -152,69 +152,63 @@ Mon ID :
 
 <div id="videos">
 
-<!-- FELA -->
 <div class="player-container" id="container-som-fela">
-<button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-fela'); setActivePOV('som-fela')">👁️</button>
 <video id="som-fela" autoplay playsinline></video>
 <div class="info-bar">FELA</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-fela')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-fela'); setActivePOV('som-fela')">⬜</button>
 </div>
 </div>
 
-<!-- NATOKY -->
 <div class="player-container" id="container-som-natoky">
-<button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-natoky'); setActivePOV('som-natoky')">👁️</button>
 <video id="som-natoky" autoplay playsinline></video>
 <div class="info-bar">NATOKY</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-natoky')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-natoky'); setActivePOV('som-natoky')">⬜</button>
 </div>
 </div>
 
-<!-- BEMA -->
 <div class="player-container" id="container-som-bema">
-<button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-bema'); setActivePOV('som-bema')">👁️</button>
 <video id="som-bema" autoplay playsinline></video>
 <div class="info-bar">BEMA</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-bema')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-bema'); setActivePOV('som-bema')">⬜</button>
 </div>
 </div>
 
-<!-- DENZOX -->
 <div class="player-container" id="container-som-denzox">
-<button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-denzox'); setActivePOV('som-denzox')">👁️</button>
 <video id="som-denzox" autoplay playsinline></video>
 <div class="info-bar">DENZOX</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-denzox')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-denzox'); setActivePOV('som-denzox')">⬜</button>
 </div>
 </div>
 
-<!-- NOXY -->
 <div class="player-container" id="container-som-noxy">
-<button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-noxy'); setActivePOV('som-noxy')">👁️</button>
 <video id="som-noxy" autoplay playsinline></video>
 <div class="info-bar">NOXY</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-noxy')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-noxy'); setActivePOV('som-noxy')">⬜</button>
 </div>
 </div>
 
-<!-- SWEZYX -->
 <div class="player-container" id="container-som-swezyx">
-<button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
+<button class="toggle-eye-btn" onclick="togglePOV('som-swezyx'); setActivePOV('som-swezyx')">👁️</button>
 <video id="som-swezyx" autoplay playsinline></video>
 <div class="info-bar">SWEZYX</div>
 <div class="controls-bottom">
 <button class="control-button" onclick="toggleMute('som-swezyx')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
+<button class="control-button" onclick="toggleFullscreen('container-som-swezyx'); setActivePOV('som-swezyx')">⬜</button>
 </div>
 </div>
 
@@ -234,6 +228,7 @@ const videoElements = {
 
 let currentStream=null;
 let currentCall=null;
+let activePOV=null;
 
 peer.on("open", id=>{
 document.getElementById("idValue").textContent=id;
@@ -273,16 +268,15 @@ currentCall=null;
 }
 }
 
-/* 🔊 MUTE FIX */
 function toggleMute(id){
 const v=document.getElementById(id);
 v.muted=!v.muted;
 v.volume=v.muted?0:1;
 }
 
-/* ⬜ FULLSCREEN FIX */
 function toggleFullscreen(id){
 const el=document.getElementById(id);
+
 if(!document.fullscreenElement){
 el.requestFullscreen();
 }else{
@@ -290,12 +284,25 @@ document.exitFullscreen();
 }
 }
 
-function toggleId(){
-const el=document.getElementById("idValue");
-el.style.display=el.style.display==="none"?"inline":"none";
+function setActivePOV(id){
+activePOV=id;
+
+document.querySelectorAll(".player-container")
+.forEach(c=>c.classList.remove("active"));
+
+const container=document.getElementById("container-"+id);
+if(container){
+container.classList.add("active");
+container.scrollIntoView({behavior:"smooth",block:"center"});
+}
 }
 
-/* 🎮 HOTKEY 1-6 */
+function togglePOV(id){
+const c=document.getElementById("container-"+id);
+c.style.display = (c.style.display==="none")?"block":"none";
+}
+
+/* 🎮 HOTKEY 1–6 */
 document.addEventListener("keydown",(e)=>{
 const map={
 "1":"som-fela",
@@ -309,15 +316,13 @@ const map={
 const id=map[e.key];
 if(!id)return;
 
-document.querySelectorAll(".player-container")
-.forEach(c=>c.classList.remove("active"));
-
-const container=document.getElementById("container-"+id);
-if(container){
-container.classList.add("active");
-container.scrollIntoView({behavior:"smooth",block:"center"});
-}
+setActivePOV(id);
 });
+
+function toggleId(){
+const el=document.getElementById("idValue");
+el.style.display=el.style.display==="none"?"inline":"none";
+}
 </script>
 
 </body>
