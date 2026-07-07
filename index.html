@@ -1,100 +1,597 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cast Stormex</title>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 <style>
+*{box-sizing:border-box;}
+
+body{
+  margin:0;
+  font-family:Arial,Helvetica,sans-serif;
+  background:#0a0a0f;
+  color:white;
+  text-align:center;
+}
+
+h1{
+  margin-top:18px;
+  font-size:22px;
+  font-weight:800;
+  color:#a855f7;
+  text-shadow:0 0 12px rgba(168,85,247,0.7);
+}
+
+#myId{
+  display:inline-block;
+  background:#141422;
+  padding:8px 14px;
+  border-radius:10px;
+  border:1px solid #2a2a40;
+  margin-bottom:10px;
+}
+
+button, select{
+  padding:10px 12px;
+  margin:5px;
+  border-radius:10px;
+  border:1px solid #2a2a40;
+  background:#151524;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+button:hover, select:hover{
+  border-color:#a855f7;
+  background:#1f1f35;
+}
+
+#hint{
+  font-size:12px;
+  color:#9a9ab0;
+  margin-bottom:10px;
+}
+
+#videos{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
+  gap:15px;
+  padding:20px;
+}
+
 .player-container{
-    background:#12121c;
-    border-radius:16px;
-    padding:10px;
-    position:relative;
-    border:1px solid #24243a;
-    transition:.2s;
+  background:#12121c;
+  border-radius:16px;
+  padding:10px;
+  position:relative;
+  border:1px solid #24243a;
+  transition:border-color .2s,box-shadow .2s,transform .2s;
 }
 
 .player-container.active{
-    border:2px solid #a855f7;
-    box-shadow:0 0 20px rgba(168,85,247,.5);
-    transform:scale(1.02);
+  border:2px solid #a855f7;
+  box-shadow:0 0 20px rgba(168,85,247,0.5);
+  transform:scale(1.02);
+}
+
+.player-container:fullscreen{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:black;
+}
+
+.player-container:fullscreen video{
+  width:100%;height:100%;
+  object-fit:contain;
+  border-radius:0;
 }
 
 video{
-    width:100%;
-    border-radius:12px;
-    background:black;
+  width:100%;
+  border-radius:12px;
+  background:black;
 }
 
-.pov-name{
-    position:absolute;
-    top:50%;
-    left:50%;
-    transform:translate(-50%,-50%);
-    font-size:30px;
-    font-weight:700;
-    color:white;
-    background:rgba(0,0,0,.45);
-    padding:10px 22px;
-    border-radius:12px;
-    border:2px solid rgba(255,255,255,.2);
-    text-shadow:0 0 10px #000;
-    pointer-events:none;
+/* ===== BANDEAU BAS CENTRE ===== */
+.bottom-label{
+  position:absolute;
+  bottom:52px;
+  left:50%;
+  transform:translateX(-50%);
+  display:flex;
+  align-items:center;
+  gap:0;
+  background:rgba(90,20,170,0.90);
+  border:1px solid rgba(168,85,247,0.55);
+  border-radius:22px;
+  box-shadow:0 2px 14px rgba(90,20,170,0.5);
+  backdrop-filter:blur(6px);
+  overflow:visible;
+  z-index:10;
+  max-width:85%;
+  white-space:nowrap;
+}
+
+/* Bouton drapeau */
+.flag-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:32px;
+  flex-shrink:0;
+  background:transparent;
+  border:none;
+  border-right:1px solid rgba(168,85,247,0.3);
+  border-radius:22px 0 0 22px;
+  margin:0;
+  padding:0;
+  cursor:pointer;
+}
+
+.flag-btn:hover{
+  background:rgba(168,85,247,0.2);
+}
+
+/* Image drapeau dans le bouton */
+.flag-btn img{
+  width:22px;
+  height:15px;
+  object-fit:cover;
+  border-radius:3px;
+  display:block;
+}
+
+/* Icône par défaut quand pas de drapeau */
+.flag-btn .no-flag{
+  font-size:14px;
+  line-height:1;
+  color:rgba(255,255,255,0.4);
+}
+
+/* Nom éditable */
+.name-bar{
+  font-size:13px;
+  font-weight:700;
+  padding:5px 12px 5px 8px;
+  outline:none;
+  background:transparent;
+  border:none;
+  color:white;
+  min-width:44px;
+  max-width:140px;
+  letter-spacing:0.4px;
+  cursor:text;
+}
+
+.name-bar:focus{
+  background:rgba(20,20,34,0.6);
+}
+
+/* ===== PICKER DRAPEAU ===== */
+.flag-picker{
+  position:fixed;          /* fixed = toujours dans la fenêtre */
+  background:#1a1a2e;
+  border:1px solid rgba(168,85,247,0.5);
+  border-radius:14px;
+  padding:8px;
+  display:none;
+  z-index:9999;
+  box-shadow:0 6px 30px rgba(0,0,0,0.8);
+  width:260px;
+  flex-wrap:wrap;
+  gap:3px;
+  justify-content:flex-start;
+  max-height:320px;
+  overflow-y:auto;
+}
+
+.flag-picker.open{
+  display:flex;
+}
+
+/* Chaque option drapeau */
+.flag-option{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  padding:5px 4px;
+  border-radius:8px;
+  border:1px solid transparent;
+  background:transparent;
+  cursor:pointer;
+  margin:0;
+  width:48px;
+}
+
+.flag-option:hover{
+  background:rgba(168,85,247,0.25);
+  border-color:rgba(168,85,247,0.5);
+}
+
+.flag-option img{
+  width:28px;
+  height:19px;
+  object-fit:cover;
+  border-radius:3px;
+}
+
+.flag-option span{
+  font-size:9px;
+  color:#b0b0c8;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  max-width:46px;
+}
+
+/* Bouton reset */
+.reset-flag-btn{
+  font-size:11px;
+  padding:4px 10px;
+  color:#9a9ab0;
+  border:1px solid #2a2a40;
+  border-radius:8px;
+  width:100%;
+  margin-top:4px;
+  background:#12121c;
+  cursor:pointer;
+}
+
+.reset-flag-btn:hover{
+  border-color:#a855f7;
+  background:#1f1f35;
+  color:white;
+}
+
+/* ===== AUTRES ===== */
+.controls-bottom{
+  margin-top:8px;
+  display:flex;
+  justify-content:center;
+  gap:10px;
+}
+
+.control-button{
+  background:#151524;
+  border:1px solid #2a2a40;
+  border-radius:8px;
+  padding:6px 10px;
+}
+
+.toggle-eye-btn{
+  position:absolute;
+  top:8px;right:8px;
+  background:#151524;
+  border:1px solid #2a2a40;
+  border-radius:8px;
+  padding:4px 8px;
+  cursor:pointer;
+  z-index:5;
 }
 </style>
+</head>
 
-<div id="videos">
-<div class="player-container" id="container-som-fela">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
-    <video id="som-fela" autoplay playsinline></video>
-    <div class="pov-name">POV 1</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-fela')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
-    </div>
-</div>
+<body>
 
-<div class="player-container" id="container-som-natoky">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
-    <video id="som-natoky" autoplay playsinline></video>
-    <div class="pov-name">POV 2</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-natoky')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
-    </div>
-</div>
+<h1>🎥 Cast Stormex</h1>
 
-<div class="player-container" id="container-som-bema">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
-    <video id="som-bema" autoplay playsinline></video>
-    <div class="pov-name">POV 3</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-bema')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
-    </div>
+<p id="myId">
+  Mon ID :
+  <span id="idValue">loading...</span>
+  <button onclick="toggleId()">👁️</button>
+</p>
+
+<div>
+  <select id="targetSlot">
+    <option value="som-slot1">POV 1</option>
+    <option value="som-slot2">POV 2</option>
+    <option value="som-slot3">POV 3</option>
+    <option value="som-slot4">POV 4</option>
+    <option value="som-slot5">POV 5</option>
+    <option value="som-slot6">POV 6</option>
+  </select>
+  <button onclick="startShare()">Partager écran</button>
+  <button onclick="stopShare()">Stop</button>
 </div>
 
-<div class="player-container" id="container-som-denzox">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
-    <video id="som-denzox" autoplay playsinline></video>
-    <div class="pov-name">POV 4</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-denzox')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
-    </div>
-</div>
-<div class="player-container" id="container-som-noxy">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
-    <video id="som-noxy" autoplay playsinline></video>
-    <div class="pov-name">POV 5</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-noxy')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
-    </div>
-</div>
+<p id="hint">
+  Flèches ← → : changer de POV &nbsp;|&nbsp; Entrée : plein écran &nbsp;|&nbsp;
+  Cliquer l'icône drapeau pour en choisir un &nbsp;|&nbsp; Cliquer le nom pour le renommer
+</p>
 
-<div class="player-container" id="container-som-swezyx">
-    <button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
-    <video id="som-swezyx" autoplay playsinline></video>
-    <div class="pov-name">POV 6</div>
-    <div class="controls-bottom">
-        <button class="control-button" onclick="toggleMute('som-swezyx')">🔊</button>
-        <button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
-    </div>
-</div>
+<div id="videos"></div>
 
-</div>
+<script>
+/* ======================== CONFIG DRAPEAUX (codes ISO) ======================== */
+// [code ISO lowercase, label]  — images servies par flagcdn.com
+const FLAGS = [
+  ["fr","France"],
+  ["be","Belgique"],
+  ["ch","Suisse"],
+  ["ca","Canada"],
+  ["ma","Maroc"],
+  ["dz","Algérie"],
+  ["tn","Tunisie"],
+  ["sn","Sénégal"],
+  ["ci","Côte d'Ivoire"],
+  ["cm","Cameroun"],
+  ["gn","Guinée"],
+  ["ml","Mali"],
+  ["cg","Congo"],
+  ["ga","Gabon"],
+  ["bf","Burkina Faso"],
+  ["tg","Togo"],
+  ["bj","Bénin"],
+  ["ne","Niger"],
+  ["mg","Madagascar"],
+  ["ht","Haïti"],
+  ["br","Brésil"],
+  ["us","USA"],
+  ["mx","Mexique"],
+  ["ar","Argentine"],
+  ["co","Colombie"],
+  ["pe","Pérou"],
+  ["cl","Chili"],
+  ["ve","Venezuela"],
+  ["gb","Royaume-Uni"],
+  ["de","Allemagne"],
+  ["es","Espagne"],
+  ["it","Italie"],
+  ["pt","Portugal"],
+  ["nl","Pays-Bas"],
+  ["pl","Pologne"],
+  ["ru","Russie"],
+  ["ua","Ukraine"],
+  ["tr","Turquie"],
+  ["ro","Roumanie"],
+  ["gr","Grèce"],
+  ["jp","Japon"],
+  ["cn","Chine"],
+  ["kr","Corée du Sud"],
+  ["au","Australie"],
+  ["za","Afrique du Sud"],
+];
+
+function flagUrl(code){
+  return `https://flagcdn.com/w40/${code}.png`;
+}
+
+function flagImgTag(code, size=22){
+  return `<img src="${flagUrl(code)}" width="${size}" height="${Math.round(size*0.667)}"
+               style="object-fit:cover;border-radius:3px;" alt="${code.toUpperCase()}"
+               onerror="this.style.display='none'">`;
+}
+
+/* ======================== GÉNÉRATION DES POVs ======================== */
+const slots = ["som-slot1","som-slot2","som-slot3","som-slot4","som-slot5","som-slot6"];
+const videosDiv = document.getElementById("videos");
+
+slots.forEach((slot, i) => {
+  const num = i + 1;
+
+  // Génère les options du picker
+  const pickerItems = FLAGS.map(([code, label]) =>
+    `<button class="flag-option" onclick="pickFlag('${slot}','${code}')" title="${label}">
+       ${flagImgTag(code,28)}
+       <span>${label}</span>
+     </button>`
+  ).join("");
+
+  videosDiv.insertAdjacentHTML("beforeend", `
+  <div class="player-container" id="container-${slot}">
+    <button class="toggle-eye-btn" onclick="togglePOV('${slot}')">👁️</button>
+    <video id="${slot}" autoplay playsinline></video>
+
+    <!-- Bandeau bas centre -->
+    <div class="bottom-label" id="label-${slot}">
+      <button class="flag-btn" id="flagbtn-${slot}"
+              onclick="togglePicker('${slot}',event)"
+              title="Choisir un drapeau">
+        <span class="no-flag" id="flagimg-${slot}">🌐</span>
+      </button>
+      <div class="name-bar" id="name-${slot}"
+           contenteditable="true" spellcheck="false"
+           data-slot="${slot}">POV ${num}</div>
+    </div>
+
+    <!-- Picker -->
+    <div class="flag-picker" id="picker-${slot}">
+      ${pickerItems}
+      <button class="reset-flag-btn" onclick="pickFlag('${slot}','')">✕ Retirer le drapeau</button>
+    </div>
+
+    <div class="controls-bottom">
+      <button class="control-button" onclick="toggleMute('${slot}')">🔊</button>
+      <button class="control-button" onclick="toggleFullscreen('container-${slot}')">⬜</button>
+    </div>
+  </div>`);
+});
+
+/* ======================== PEER / WebRTC ======================== */
+const peer = new Peer();
+const videoElements = {};
+slots.forEach(s => { videoElements[s] = document.getElementById(s); });
+let currentStream=null, currentCall=null, activeIndex=0;
+
+peer.on("open", id => { document.getElementById("idValue").textContent = id; });
+
+peer.on("call", call => {
+  const slot = call.metadata?.slot;
+  call.answer();
+  call.on("stream", stream => {
+    const v = videoElements[slot];
+    if (!v) return;
+    v.srcObject = stream;
+    v.play().catch(() => {});
+  });
+});
+
+/* ====== PARTAGE D'ÉCRAN HAUTE QUALITÉ ====== */
+function startShare(){
+  const id = prompt("Peer ID du destinataire :");
+  if (!id) return;
+  const slot = document.getElementById("targetSlot").value;
+  navigator.mediaDevices.getDisplayMedia({
+    video:{ width:{ideal:1920,max:2560}, height:{ideal:1080,max:1440}, frameRate:{ideal:30,max:60} },
+    audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+  }).then(stream => {
+    currentStream = stream;
+    currentCall = peer.call(id, stream, { metadata:{ slot } });
+    const boost = () => {
+      try {
+        const pc = currentCall.peerConnection;
+        if (!pc) return;
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender){
+          const p = sender.getParameters();
+          if (!p.encodings) p.encodings = [{}];
+          p.encodings[0].maxBitrate = 8_000_000;
+          sender.setParameters(p).catch(() => {});
+        }
+      } catch(e) {}
+    };
+    let n = 0;
+    const iv = setInterval(() => { boost(); if (++n > 10) clearInterval(iv); }, 500);
+  });
+}
+
+function stopShare(){
+  currentStream?.getTracks().forEach(t => t.stop()); currentStream = null;
+  currentCall?.close(); currentCall = null;
+}
+
+/* ====== DRAPEAU PICKER ====== */
+function togglePicker(slot, e){
+  e.stopPropagation();
+  const picker = document.getElementById("picker-" + slot);
+  const isOpen = picker.classList.contains("open");
+  document.querySelectorAll(".flag-picker.open").forEach(p => p.classList.remove("open"));
+  if (!isOpen){
+    // Calcule la position du bouton dans la fenêtre
+    const btn = document.getElementById("flagbtn-" + slot);
+    const rect = btn.getBoundingClientRect();
+    const pickerH = 320;
+    const pickerW = 260;
+
+    // Ouvre vers le haut ou vers le bas selon l'espace disponible
+    let top;
+    if (rect.top > pickerH + 8){
+      // Assez de place au-dessus
+      top = rect.top - pickerH - 8;
+    } else {
+      // Ouvre vers le bas
+      top = rect.bottom + 8;
+    }
+
+    // Centre horizontalement sur le bouton, reste dans la fenêtre
+    let left = rect.left + rect.width/2 - pickerW/2;
+    left = Math.max(8, Math.min(left, window.innerWidth - pickerW - 8));
+
+    picker.style.top  = top  + "px";
+    picker.style.left = left + "px";
+    picker.classList.add("open");
+  }
+}
+
+function pickFlag(slot, code){
+  const imgSpan = document.getElementById("flagimg-" + slot);
+  if (code){
+    imgSpan.innerHTML = flagImgTag(code, 22);
+  } else {
+    imgSpan.innerHTML = "🌐";
+  }
+  localStorage.setItem("flag-" + slot, code);
+  document.getElementById("picker-" + slot).classList.remove("open");
+}
+
+document.addEventListener("click", () => {
+  document.querySelectorAll(".flag-picker.open").forEach(p => p.classList.remove("open"));
+});
+
+/* ====== NOMS ÉDITABLES ====== */
+function loadPseudos(){
+  slots.forEach((slot, i) => {
+    const savedFlag = localStorage.getItem("flag-" + slot);
+    const savedName = localStorage.getItem("name-" + slot);
+    if (savedFlag !== null) pickFlag(slot, savedFlag);
+    if (savedName !== null){
+      const bar = document.getElementById("name-" + slot);
+      if (bar) bar.textContent = savedName || "POV " + (i+1);
+    }
+  });
+}
+
+document.querySelectorAll(".name-bar").forEach(bar => {
+  bar.addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); bar.blur(); }
+    e.stopPropagation();
+  });
+  bar.addEventListener("blur", () => {
+    const slot = bar.dataset.slot;
+    const i = slots.indexOf(slot);
+    if (!bar.textContent.trim()) bar.textContent = "POV " + (i+1);
+    localStorage.setItem("name-" + slot, bar.textContent.trim());
+  });
+});
+
+loadPseudos();
+
+/* ====== CONTRÔLES ====== */
+function toggleMute(id){
+  const v = document.getElementById(id);
+  v.muted = !v.muted; v.volume = v.muted ? 0 : 1;
+}
+
+function toggleFullscreen(containerId){
+  const el = document.getElementById(containerId);
+  if (!document.fullscreenElement){ el.requestFullscreen().catch(() => {}); }
+  else if (document.fullscreenElement === el){ document.exitFullscreen(); }
+  else { document.exitFullscreen().then(() => el.requestFullscreen().catch(() => {})); }
+}
+
+function togglePOV(id){ toggleFullscreen("container-" + id); }
+
+function toggleId(){
+  const el = document.getElementById("idValue");
+  el.style.display = el.style.display === "none" ? "inline" : "none";
+}
+
+/* ====== NAVIGATION POV ====== */
+function activateSlot(index){
+  activeIndex = ((index % slots.length) + slots.length) % slots.length;
+  const slot = slots[activeIndex];
+  document.querySelectorAll(".player-container").forEach(c => c.classList.remove("active"));
+  const container = document.getElementById("container-" + slot);
+  if (!container) return;
+  container.classList.add("active");
+  container.scrollIntoView({ behavior:"smooth", block:"center" });
+  if (document.fullscreenElement && document.fullscreenElement !== container){
+    document.exitFullscreen().then(() => container.requestFullscreen().catch(() => {}));
+  }
+}
+
+document.addEventListener("keydown", e => {
+  if (document.activeElement?.classList.contains("name-bar")) return;
+  const numMap = {"1":0,"2":1,"3":2,"4":3,"5":4,"6":5};
+  if (numMap[e.key] !== undefined){ activateSlot(numMap[e.key]); return; }
+  switch(e.key){
+    case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(activeIndex+1); break;
+    case "ArrowLeft":  case "ArrowUp":   e.preventDefault(); activateSlot(activeIndex-1); break;
+    case "Enter":  e.preventDefault(); toggleFullscreen("container-"+slots[activeIndex]); break;
+    case "Escape": if (document.fullscreenElement) document.exitFullscreen(); break;
+  }
+});
+
+activateSlot(0);
+</script>
+
+</body>
+</html>
