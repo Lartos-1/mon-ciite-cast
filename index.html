@@ -557,7 +557,21 @@ function toggleFullscreen(containerId){
   else { document.exitFullscreen().then(() => el.requestFullscreen().catch(() => {})); }
 }
 
-function togglePOV(id){ toggleFullscreen("container-" + id); }
+function togglePOV(id){
+  const container = document.getElementById("container-" + id);
+  const video = document.getElementById(id);
+  const btn = container.querySelector(".toggle-eye-btn");
+  const hidden = container.dataset.hidden === "1";
+  if(hidden){
+    video.style.visibility = "visible";
+    container.dataset.hidden = "0";
+    btn.style.opacity = "1";
+  } else {
+    video.style.visibility = "hidden";
+    container.dataset.hidden = "1";
+    btn.style.opacity = "0.35";
+  }
+}
 
 function toggleId(){
   const el = document.getElementById("idValue");
