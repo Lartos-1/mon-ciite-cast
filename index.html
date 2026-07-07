@@ -1,470 +1,100 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cast Stormex</title>
-
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-
 <style>
-*{box-sizing:border-box;}
-
-body{
-margin:0;
-font-family:Arial, Helvetica, sans-serif;
-background:#0a0a0f;
-color:white;
-text-align:center;
-}
-
-h1{
-margin-top:18px;
-font-size:22px;
-font-weight:800;
-color:#a855f7;
-text-shadow:0 0 12px rgba(168,85,247,0.7);
-}
-
-#myId{
-display:inline-block;
-background:#141422;
-padding:8px 14px;
-border-radius:10px;
-border:1px solid #2a2a40;
-margin-bottom:10px;
-}
-
-button, select{
-padding:10px 12px;
-margin:5px;
-border-radius:10px;
-border:1px solid #2a2a40;
-background:#151524;
-color:white;
-font-weight:bold;
-cursor:pointer;
-}
-
-button:hover, select:hover{
-border-color:#a855f7;
-background:#1f1f35;
-}
-
-label{
-display:inline-block;
-margin:5px;
-padding:6px 10px;
-border-radius:8px;
-background:#141422;
-border:1px solid #2a2a40;
-}
-
-#hint{
-font-size:12px;
-color:#9a9ab0;
-margin-bottom:10px;
-}
-
-#videos{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
-gap:15px;
-padding:20px;
-}
-
 .player-container{
-background:#12121c;
-border-radius:16px;
-padding:10px;
-position:relative;
-border:1px solid #24243a;
-transition:0.2s;
+    background:#12121c;
+    border-radius:16px;
+    padding:10px;
+    position:relative;
+    border:1px solid #24243a;
+    transition:.2s;
 }
 
 .player-container.active{
-border:2px solid #a855f7;
-box-shadow:0 0 20px rgba(168,85,247,0.5);
-transform:scale(1.02);
-}
-
-/* En plein écran, on veut que la vidéo remplisse l'écran proprement */
-.player-container:fullscreen{
-display:flex;
-align-items:center;
-justify-content:center;
-background:black;
-}
-
-.player-container:fullscreen video{
-width:100%;
-height:100%;
-object-fit:contain;
-border-radius:0;
+    border:2px solid #a855f7;
+    box-shadow:0 0 20px rgba(168,85,247,.5);
+    transform:scale(1.02);
 }
 
 video{
-width:100%;
-border-radius:12px;
-background:black;
+    width:100%;
+    border-radius:12px;
+    background:black;
 }
 
-.info-bar{
-position:absolute;
-top:10px;
-left:10px;
-background:rgba(0,0,0,0.75);
-padding:4px 10px;
-border-radius:8px;
-font-size:12px;
-border:1px solid #a855f7;
-cursor:text;
-min-width:30px;
-outline:none;
-}
-
-.info-bar:focus{
-border-color:#22c55e;
-}
-
-.controls-bottom{
-margin-top:8px;
-display:flex;
-justify-content:center;
-gap:10px;
-}
-
-.control-button{
-background:#151524;
-border:1px solid #2a2a40;
-border-radius:8px;
-padding:6px 10px;
-}
-
-.toggle-eye-btn{
-position:absolute;
-top:8px;
-right:8px;
-background:#151524;
-border:1px solid #2a2a40;
-border-radius:8px;
-padding:4px 8px;
-cursor:pointer;
+.pov-name{
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    font-size:30px;
+    font-weight:700;
+    color:white;
+    background:rgba(0,0,0,.45);
+    padding:10px 22px;
+    border-radius:12px;
+    border:2px solid rgba(255,255,255,.2);
+    text-shadow:0 0 10px #000;
+    pointer-events:none;
 }
 </style>
-</head>
-
-<body>
-
-<h1>🎥 Cast Stormex</h1>
-
-<p id="myId">
-Mon ID :
-<span id="idValue">loading...</span>
-<button onclick="toggleId()">👁️</button>
-</p>
-
-<div>
-<select id="targetSlot">
-<option value="som-fela">SOM FELA</option>
-<option value="som-natoky">SOM NATOKY</option>
-<option value="som-bema">SOM BEMA</option>
-<option value="som-denzox">SOM DENZOX</option>
-<option value="som-noxy">SOM NOXY</option>
-<option value="som-swezyx">SOM SWEZYX</option>
-</select>
-
-<button onclick="startShare()">Partager écran</button>
-<button onclick="stopShare()">Stop</button>
-</div>
-
-<p id="hint">Flèches ← → : changer de POV &nbsp;|&nbsp; Entrée : plein écran sur le POV actif &nbsp;|&nbsp; Double-clic sur un nom pour le renommer</p>
 
 <div id="videos">
-
-<!-- FELA -->
 <div class="player-container" id="container-som-fela">
-<button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
-<video id="som-fela" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-fela">FELA</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-fela')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
-</div>
+    <button class="toggle-eye-btn" onclick="togglePOV('som-fela')">👁️</button>
+    <video id="som-fela" autoplay playsinline></video>
+    <div class="pov-name">POV 1</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-fela')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-fela')">⬜</button>
+    </div>
 </div>
 
-<!-- NATOKY -->
 <div class="player-container" id="container-som-natoky">
-<button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
-<video id="som-natoky" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-natoky">NATOKY</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-natoky')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
-</div>
+    <button class="toggle-eye-btn" onclick="togglePOV('som-natoky')">👁️</button>
+    <video id="som-natoky" autoplay playsinline></video>
+    <div class="pov-name">POV 2</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-natoky')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-natoky')">⬜</button>
+    </div>
 </div>
 
-<!-- BEMA -->
 <div class="player-container" id="container-som-bema">
-<button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
-<video id="som-bema" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-bema">BEMA</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-bema')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
-</div>
+    <button class="toggle-eye-btn" onclick="togglePOV('som-bema')">👁️</button>
+    <video id="som-bema" autoplay playsinline></video>
+    <div class="pov-name">POV 3</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-bema')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-bema')">⬜</button>
+    </div>
 </div>
 
-<!-- DENZOX -->
 <div class="player-container" id="container-som-denzox">
-<button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
-<video id="som-denzox" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-denzox">DENZOX</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-denzox')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
+    <button class="toggle-eye-btn" onclick="togglePOV('som-denzox')">👁️</button>
+    <video id="som-denzox" autoplay playsinline></video>
+    <div class="pov-name">POV 4</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-denzox')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-denzox')">⬜</button>
+    </div>
 </div>
-</div>
-
-<!-- NOXY -->
 <div class="player-container" id="container-som-noxy">
-<button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
-<video id="som-noxy" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-noxy">NOXY</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-noxy')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
-</div>
+    <button class="toggle-eye-btn" onclick="togglePOV('som-noxy')">👁️</button>
+    <video id="som-noxy" autoplay playsinline></video>
+    <div class="pov-name">POV 5</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-noxy')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-noxy')">⬜</button>
+    </div>
 </div>
 
-<!-- SWEZYX -->
 <div class="player-container" id="container-som-swezyx">
-<button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
-<video id="som-swezyx" autoplay playsinline></video>
-<div class="info-bar" contenteditable="true" spellcheck="false" data-slot="som-swezyx">SWEZYX</div>
-<div class="controls-bottom">
-<button class="control-button" onclick="toggleMute('som-swezyx')">🔊</button>
-<button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
-</div>
-</div>
-
+    <button class="toggle-eye-btn" onclick="togglePOV('som-swezyx')">👁️</button>
+    <video id="som-swezyx" autoplay playsinline></video>
+    <div class="pov-name">POV 6</div>
+    <div class="controls-bottom">
+        <button class="control-button" onclick="toggleMute('som-swezyx')">🔊</button>
+        <button class="control-button" onclick="toggleFullscreen('container-som-swezyx')">⬜</button>
+    </div>
 </div>
 
-<script>
-const peer = new Peer();
-
-const slots = ["som-fela","som-natoky","som-bema","som-denzox","som-noxy","som-swezyx"];
-
-const videoElements = {
-"som-fela": document.getElementById("som-fela"),
-"som-natoky": document.getElementById("som-natoky"),
-"som-bema": document.getElementById("som-bema"),
-"som-denzox": document.getElementById("som-denzox"),
-"som-noxy": document.getElementById("som-noxy"),
-"som-swezyx": document.getElementById("som-swezyx")
-};
-
-let currentStream=null;
-let currentCall=null;
-let activeIndex=0; // POV actif pour la navigation clavier
-
-peer.on("open", id=>{
-document.getElementById("idValue").textContent=id;
-});
-
-peer.on("call", call=>{
-const slot=call.metadata?.slot;
-call.answer();
-
-call.on("stream", stream=>{
-const v=videoElements[slot];
-if(!v)return;
-v.srcObject=stream;
-v.play().catch(()=>{});
-});
-});
-
-/* ================= PARTAGE D'ECRAN EN BONNE QUALITE ================= */
-function startShare(){
-const id=prompt("Peer ID:");
-const slot=document.getElementById("targetSlot").value;
-
-navigator.mediaDevices.getDisplayMedia({
-video:{
-width:{ideal:1920, max:2560},
-height:{ideal:1080, max:1440},
-frameRate:{ideal:30, max:60}
-},
-audio:{
-echoCancellation:false,
-noiseSuppression:false,
-autoGainControl:false
-}
-})
-.then(stream=>{
-currentStream=stream;
-currentCall=peer.call(id,stream,{metadata:{slot}});
-
-// Booste le bitrate vidéo une fois la connexion établie
-currentCall.on("stream", ()=>{});
-const applyHighBitrate=()=>{
-try{
-const pc=currentCall.peerConnection;
-if(!pc)return;
-const sender=pc.getSenders().find(s=>s.track && s.track.kind==="video");
-if(sender){
-const params=sender.getParameters();
-if(!params.encodings) params.encodings=[{}];
-params.encodings[0].maxBitrate=8_000_000; // 8 Mbps
-sender.setParameters(params).catch(()=>{});
-}
-}catch(e){}
-};
-// on retente quelques fois le temps que la connexion soit prête
-let tries=0;
-const interval=setInterval(()=>{
-applyHighBitrate();
-tries++;
-if(tries>10) clearInterval(interval);
-},500);
-});
-}
-
-function stopShare(){
-if(currentStream){
-currentStream.getTracks().forEach(t=>t.stop());
-currentStream=null;
-}
-if(currentCall){
-currentCall.close();
-currentCall=null;
-}
-}
-
-/* 🔊 MUTE FIX */
-function toggleMute(id){
-const v=document.getElementById(id);
-v.muted=!v.muted;
-v.volume=v.muted?0:1;
-}
-
-/* ⬜ FULLSCREEN FIX — gère aussi le passage d'un POV à un autre en plein écran */
-function toggleFullscreen(containerId){
-const el=document.getElementById(containerId);
-if(!document.fullscreenElement){
-el.requestFullscreen().catch(()=>{});
-}else if(document.fullscreenElement===el){
-document.exitFullscreen();
-}else{
-// on est déjà en plein écran sur un autre POV : on switch proprement
-document.exitFullscreen().then(()=>el.requestFullscreen().catch(()=>{}));
-}
-}
-
-function togglePOV(id){
-// alias conservé pour compatibilité avec le bouton 👁️ existant
-toggleFullscreen("container-"+id);
-}
-
-function toggleId(){
-const el=document.getElementById("idValue");
-el.style.display=el.style.display==="none"?"inline":"none";
-}
-
-/* ======= Active un POV (surbrillance + scroll + suit en plein écran) ======= */
-function activateSlot(index){
-activeIndex=((index % slots.length)+slots.length)%slots.length;
-const slot=slots[activeIndex];
-
-document.querySelectorAll(".player-container")
-.forEach(c=>c.classList.remove("active"));
-
-const container=document.getElementById("container-"+slot);
-if(!container)return;
-
-container.classList.add("active");
-container.scrollIntoView({behavior:"smooth",block:"center"});
-
-// si on est déjà en plein écran, on bascule le plein écran vers le nouveau POV
-if(document.fullscreenElement && document.fullscreenElement!==container){
-document.exitFullscreen().then(()=>container.requestFullscreen().catch(()=>{}));
-}
-}
-
-/* ================= PSEUDOS EDITABLES ================= */
-function loadPseudos(){
-document.querySelectorAll(".info-bar").forEach(bar=>{
-const slot=bar.dataset.slot;
-const saved=localStorage.getItem("pseudo-"+slot);
-if(saved) bar.textContent=saved;
-});
-}
-
-document.querySelectorAll(".info-bar").forEach(bar=>{
-const slot=bar.dataset.slot;
-
-// Entrée = valider au lieu d'aller à la ligne
-bar.addEventListener("keydown", e=>{
-if(e.key==="Enter"){
-e.preventDefault();
-bar.blur();
-}
-// empêche les flèches/1-6 de déclencher la navigation POV pendant l'édition
-e.stopPropagation();
-});
-
-bar.addEventListener("blur", ()=>{
-const text=bar.textContent.trim() || slot.toUpperCase();
-bar.textContent=text;
-localStorage.setItem("pseudo-"+slot, text);
-});
-});
-
-loadPseudos();
-
-/* 🎮 CLAVIER : chiffres 1-6, flèches gauche/droite/haut/bas, Entrée = plein écran */
-document.addEventListener("keydown",(e)=>{
-// si on est en train d'éditer un pseudo, on ne fait rien ici
-if(document.activeElement && document.activeElement.classList.contains("info-bar")) return;
-
-const numMap={
-"1":"som-fela",
-"2":"som-natoky",
-"3":"som-bema",
-"4":"som-denzox",
-"5":"som-noxy",
-"6":"som-swezyx"
-};
-
-if(numMap[e.key]){
-activateSlot(slots.indexOf(numMap[e.key]));
-return;
-}
-
-switch(e.key){
-case "ArrowRight":
-case "ArrowDown":
-e.preventDefault();
-activateSlot(activeIndex+1);
-break;
-case "ArrowLeft":
-case "ArrowUp":
-e.preventDefault();
-activateSlot(activeIndex-1);
-break;
-case "Enter":
-e.preventDefault();
-toggleFullscreen("container-"+slots[activeIndex]);
-break;
-case "Escape":
-if(document.fullscreenElement) document.exitFullscreen();
-break;
-}
-});
-
-// active le premier POV par défaut
-activateSlot(0);
-</script>
-
-</body>
-</html>
+</div>
