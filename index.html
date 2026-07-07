@@ -276,6 +276,48 @@ video{
   cursor:pointer;
   z-index:5;
 }
+
+/* ===== BARRE DES POVs CACHÉS ===== */
+#hidden-bar{
+  display:none;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+  padding:10px 20px 16px;
+}
+
+#hidden-bar-label{
+  width:100%;
+  font-size:11px;
+  color:#9a9ab0;
+  margin-bottom:2px;
+}
+
+.hidden-chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  background:#1a1a2e;
+  border:1px solid rgba(168,85,247,0.4);
+  border-radius:20px;
+  padding:5px 12px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+  transition:background .15s;
+}
+
+.hidden-chip:hover{
+  background:rgba(168,85,247,0.25);
+  border-color:#a855f7;
+}
+
+.hidden-chip img{
+  width:18px;
+  height:12px;
+  object-fit:cover;
+  border-radius:2px;
+}
 </style>
 </head>
 
@@ -308,6 +350,10 @@ video{
 </p>
 
 <div id="videos"></div>
+
+<div id="hidden-bar">
+  <div id="hidden-bar-label">POVs masqués — clique pour réafficher</div>
+</div>
 
 <script>
 /* ======================== CONFIG DRAPEAUX (codes ISO) ======================== */
@@ -353,6 +399,41 @@ const FLAGS = [
   ["tr","Turquie"],
   ["ro","Roumanie"],
   ["gr","Grèce"],
+  ["at","Autriche"],
+  ["be","Belgique"],
+  ["bg","Bulgarie"],
+  ["by","Biélorussie"],
+  ["ba","Bosnie-Herzégovine"],
+  ["hr","Croatie"],
+  ["cy","Chypre"],
+  ["cz","Tchéquie"],
+  ["dk","Danemark"],
+  ["ee","Estonie"],
+  ["fi","Finlande"],
+  ["hu","Hongrie"],
+  ["is","Islande"],
+  ["ie","Irlande"],
+  ["xk","Kosovo"],
+  ["lv","Lettonie"],
+  ["li","Liechtenstein"],
+  ["lt","Lituanie"],
+  ["lu","Luxembourg"],
+  ["mt","Malte"],
+  ["md","Moldavie"],
+  ["mc","Monaco"],
+  ["me","Monténégro"],
+  ["no","Norvège"],
+  ["sm","Saint-Marin"],
+  ["rs","Serbie"],
+  ["sk","Slovaquie"],
+  ["si","Slovénie"],
+  ["se","Suède"],
+  ["mk","Macédoine du Nord"],
+  ["al","Albanie"],
+  ["ad","Andorre"],
+  ["am","Arménie"],
+  ["az","Azerbaïdjan"],
+  ["ge","Géorgie"],
   ["jp","Japon"],
   ["cn","Chine"],
   ["kr","Corée du Sud"],
@@ -557,7 +638,48 @@ function toggleFullscreen(containerId){
   else { document.exitFullscreen().then(() => el.requestFullscreen().catch(() => {})); }
 }
 
-function togglePOV(id){ toggleFullscreen("container-" + id); }
+function togglePOV(id){
+  const container = document.getElementById("container-" + id);
+  // Cache le container entier
+  container.style.display = "none";
+  addHiddenChip(id);
+}
+
+function showPOV(id){
+  const container = document.getElementById("container-" + id);
+  container.style.display = "";
+  removeHiddenChip(id);
+}
+
+function addHiddenChip(id){
+  const bar = document.getElementById("hidden-bar");
+  // Récupère le nom et le drapeau actuels
+  const slot = id; // id = "som-slot1" etc.
+  const nameEl = document.getElementById("name-" + slot);
+  const flagEl = document.getElementById("flagimg-" + slot);
+  const name = nameEl ? nameEl.textContent.trim() : slot;
+  const flagCode = localStorage.getItem("flag-" + slot) || "";
+
+  const chip = document.createElement("div");
+  chip.className = "hidden-chip";
+  chip.id = "chip-" + id;
+  chip.onclick = () => showPOV(id);
+  chip.innerHTML = (flagCode
+    ? `<img src="https://flagcdn.com/w40/${flagCode}.png" width="18" height="12" style="object-fit:cover;border-radius:2px;" alt="">`
+    : "") +
+    `<span>👁️ ${name}</span>`;
+
+  bar.appendChild(chip);
+  bar.style.display = "flex";
+}
+
+function removeHiddenChip(id){
+  const chip = document.getElementById("chip-" + id);
+  if (chip) chip.remove();
+  // Cache la barre si plus rien dedans
+  const bar = document.getElementById("hidden-bar");
+  if (!bar.querySelector(".hidden-chip")) bar.style.display = "none";
+}
 
 function toggleId(){
   const el = document.getElementById("idValue");
