@@ -147,7 +147,8 @@ button:hover, select:hover{
 }
 
 .player-container:fullscreen video,
-.player-container:fullscreen .delay-canvas{
+.player-container:fullscreen .delay-canvas,
+.player-container:fullscreen .twitch-frame{
   width:100% !important;
   height:100% !important;
   object-fit:cover;
@@ -173,6 +174,35 @@ video{
   z-index:1;
   display:none;
 }
+
+/* ===== TWITCH IFRAME ===== */
+.twitch-frame{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  border:none;
+  z-index:2;
+  border-radius:0;
+}
+
+/* Placeholder quand aucun stream n'est connecté */
+.slot-placeholder{
+  position:absolute;
+  top:0; left:0;
+  width:100%; height:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  color:#3a3a55;
+  font-size:13px;
+  pointer-events:none;
+  z-index:0;
+}
+
+.slot-placeholder .ph-icon{ font-size:32px; }
+.slot-placeholder .ph-text{ font-size:11px; color:#2a2a40; }
 
 .buffer-badge{
   position:absolute;
@@ -211,18 +241,26 @@ video{
   background:rgba(168,85,247,0.35);
 }
 
-.mute-btn{ left:8px; }
+.mute-btn     { left:8px; }
+.twitch-btn   { left:8px; top:44px; }
 .toggle-eye-btn{ right:8px; }
 .fullscreen-btn{ right:8px; top:44px; }
 
 .player-container:fullscreen .toggle-eye-btn,
-.player-container:fullscreen .fullscreen-btn{
+.player-container:fullscreen .fullscreen-btn,
+.player-container:fullscreen .twitch-btn{
   display:none;
 }
 
 .mute-btn.is-muted{
   border-color:#ef4444;
   color:#ef4444;
+}
+
+.twitch-btn.is-live{
+  border-color:#9146ff;
+  color:#9146ff;
+  background:rgba(145,70,255,0.18);
 }
 
 /* ===== BANDEAU BAS CENTRE ===== */
@@ -297,7 +335,7 @@ video{
   background:rgba(20,20,34,0.6);
 }
 
-/* ===== PICKER DRAPEAU GLOBAL (au niveau body) ===== */
+/* ===== PICKER DRAPEAU GLOBAL ===== */
 #global-flag-picker{
   position:fixed;
   background:#1a1a2e;
@@ -315,9 +353,7 @@ video{
   overflow-y:auto;
 }
 
-#global-flag-picker.open{
-  display:flex;
-}
+#global-flag-picker.open{ display:flex; }
 
 .flag-option{
   display:flex;
@@ -372,7 +408,7 @@ video{
   color:white;
 }
 
-/* ===== BARRE DES POVs CACHÉS ===== */
+/* ===== POVs CACHÉS ===== */
 #hidden-bar{
   display:none;
   flex-wrap:wrap;
@@ -448,7 +484,7 @@ video{
 
 <p id="hint">
   Flèches ← → : changer de POV &nbsp;|&nbsp; Entrée : plein écran &nbsp;|&nbsp;
-  Cliquer le drapeau pour en choisir un &nbsp;|&nbsp; Cliquer le nom pour le renommer
+  📺 : mettre un live Twitch &nbsp;|&nbsp; Cliquer le drapeau / nom pour modifier
 </p>
 
 <div id="videos"></div>
@@ -461,37 +497,25 @@ video{
 
 <script>
 /* ================================================================
-   DÉLAI — vidéo (canvas frame buffer) + audio (Web Audio DelayNode)
+   DÉLAI
    ================================================================ */
 let DELAY_MS = 5000;
 const delaySetups = {};
 
-/* ------------------------------------------------------------------
-   AudioContext PARTAGÉ — corrige le bug "le son ne marche pas".
-   Avant : un `new AudioContext()` était créé à CHAQUE flux reçu, dans
-   le handler `call.on("stream", ...)`. Ce handler n'est pas déclenché
-   par un clic utilisateur, donc Chrome démarre l'AudioContext en état
-   "suspended" et aucun son ne sort jamais (silence total, sans erreur
-   visible). On utilise maintenant UN SEUL AudioContext créé/relancé
-   au premier clic sur la page, et on le "resume()" à chaque interaction.
-   ------------------------------------------------------------------ */
 let sharedAudioCtx = null;
 function getSharedAudioCtx(){
-  if (!sharedAudioCtx){
+  if (!sharedAudioCtx)
     sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (sharedAudioCtx.state === "suspended"){
+  if (sharedAudioCtx.state === "suspended")
     sharedAudioCtx.resume().catch(() => {});
-  }
   return sharedAudioCtx;
 }
-["click","keydown","touchstart"].forEach(evt => {
+["click","keydown","touchstart"].forEach(evt =>
   document.addEventListener(evt, () => {
-    if (sharedAudioCtx && sharedAudioCtx.state === "suspended"){
+    if (sharedAudioCtx && sharedAudioCtx.state === "suspended")
       sharedAudioCtx.resume().catch(() => {});
-    }
-  }, { passive:true });
-});
+  }, { passive:true })
+);
 
 function onDelayChange(val){
   DELAY_MS = parseFloat(val) * 1000;
@@ -506,8 +530,6 @@ function setupDelay(slot, stream){
   if (old){
     old.active = false;
     old.frames.forEach(f => { try { f.bitmap.close(); } catch(e){} });
-    // On ne ferme plus le contexte (il est partagé entre tous les slots),
-    // on déconnecte juste les noeuds audio de cet ancien flux.
     try { old.source && old.source.disconnect(); } catch(e){}
     try { old.delayNode && old.delayNode.disconnect(); } catch(e){}
     try { old.gainNode && old.gainNode.disconnect(); } catch(e){}
@@ -523,8 +545,6 @@ function setupDelay(slot, stream){
   const gainNode = audioCtx.createGain();
   gainNode.gain.value = 0;
 
-  // Le flux peut arriver sans piste audio (ex: capture de fenêtre sans
-  // audio côté émetteur) : on protège pour ne pas casser l'affichage vidéo.
   let source = null;
   if (stream.getAudioTracks().length > 0){
     try {
@@ -532,16 +552,10 @@ function setupDelay(slot, stream){
       source.connect(delayNode);
       delayNode.connect(gainNode);
       gainNode.connect(audioCtx.destination);
-    } catch(e){
-      console.warn("Impossible de router l'audio pour", slot, e);
-      source = null;
-    }
-  } else {
-    console.warn("Aucune piste audio reçue pour", slot, "- le flux distant n'envoie pas de son.");
+    } catch(e){ source = null; }
   }
 
   const container = document.getElementById("container-" + slot);
-
   const canvas = document.createElement("canvas");
   canvas.className = "delay-canvas";
   container.appendChild(canvas);
@@ -553,7 +567,7 @@ function setupDelay(slot, stream){
     badge.textContent = "⏳ Buffering " + (DELAY_MS/1000).toFixed(1) + "s...";
   }
 
-  const setup = { ctx: audioCtx, source, gainNode, delayNode, frames: [], active: true, canvas, canvasCtx };
+  const setup = { ctx:audioCtx, source, gainNode, delayNode, frames:[], active:true, canvas, canvasCtx };
   delaySetups[slot] = setup;
 
   function captureLoop(){
@@ -566,7 +580,7 @@ function setupDelay(slot, stream){
       }
       createImageBitmap(v).then(bmp => {
         if (!setup.active){ bmp.close(); return; }
-        setup.frames.push({ bitmap: bmp, ts: performance.now() });
+        setup.frames.push({ bitmap:bmp, ts:performance.now() });
         const cutoff = performance.now() - DELAY_MS - 5000;
         while (setup.frames.length > 1 && setup.frames[0].ts < cutoff){
           try { setup.frames[0].bitmap.close(); } catch(e){}
@@ -582,9 +596,8 @@ function setupDelay(slot, stream){
     if (!setup.active) return;
     const target = performance.now() - DELAY_MS;
     let best = null;
-    for (let i = setup.frames.length - 1; i >= 0; i--){
+    for (let i = setup.frames.length - 1; i >= 0; i--)
       if (setup.frames[i].ts <= target){ best = setup.frames[i]; break; }
-    }
     if (best && canvas.width > 0){
       canvasCtx.drawImage(best.bitmap, 0, 0, canvas.width, canvas.height);
       if (!bufferingDone && badge){ badge.style.display = "none"; bufferingDone = true; }
@@ -597,11 +610,7 @@ function setupDelay(slot, stream){
 }
 
 /* ================================================================
-   AUDIO DU JEU — détection automatique
-   Ordre de priorité :
-   1. Chrome capture l'audio de la fenêtre tout seul (track présent dans le stream)
-   2. Périphérique loopback détecté automatiquement (VB-Cable, Stereo Mix, etc.)
-   3. Rien — la vidéo est envoyée sans audio
+   AUDIO DU JEU — détection automatique du loopback
    ================================================================ */
 const LOOPBACK_KEYWORDS = [
   "stereo mix","what u hear","cable output","vb-audio","voicemeeter",
@@ -611,86 +620,46 @@ const LOOPBACK_KEYWORDS = [
 
 async function getGameAudioTrack(){
   try {
-    // Besoin d'une permission micro pour avoir les labels des périphériques
-    const tmp = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const tmp = await navigator.mediaDevices.getUserMedia({ audio:true });
     tmp.getTracks().forEach(t => t.stop());
-
     const devices = await navigator.mediaDevices.enumerateDevices();
-    const inputs  = devices.filter(d => d.kind === "audioinput");
-
-    const loopback = inputs.find(d =>
+    const loopback = devices.filter(d => d.kind === "audioinput").find(d =>
       LOOPBACK_KEYWORDS.some(kw => d.label.toLowerCase().includes(kw))
     );
-
     if (loopback){
-      console.log("🎮 Loopback détecté automatiquement :", loopback.label);
       const s = await navigator.mediaDevices.getUserMedia({
-        audio:{
-          deviceId:{ exact: loopback.deviceId },
-          echoCancellation:false,
-          noiseSuppression:false,
-          autoGainControl:false
-        }
+        audio:{ deviceId:{ exact:loopback.deviceId },
+                echoCancellation:false, noiseSuppression:false, autoGainControl:false }
       });
       return s.getAudioTracks()[0] || null;
     }
-  } catch(e){ console.warn("Détection loopback échouée :", e); }
+  } catch(e){}
   return null;
 }
 
 async function startShare(){
-  // Un clic utilisateur vient de se produire : on en profite pour
-  // relancer l'AudioContext partagé (nécessaire pour que le son
-  // fonctionne côté récepteur — voir getSharedAudioCtx()).
   getSharedAudioCtx();
-
   const id = prompt("Peer ID du destinataire :");
   if (!id) return;
   const slot = document.getElementById("targetSlot").value;
 
   let videoStream;
   try {
-    // Demande la fenêtre du jeu en vidéo + audio de fenêtre si Chrome le propose
     videoStream = await navigator.mediaDevices.getDisplayMedia({
-      video:{
-        displaySurface:"window",
-        width:{ideal:1920,max:2560},
-        height:{ideal:1080,max:1440},
-        frameRate:{ideal:30,max:60}
-      },
-      audio:{
-        echoCancellation:false,
-        noiseSuppression:false,
-        autoGainControl:false,
-        suppressLocalAudioPlayback:false
-      },
+      video:{ displaySurface:"window",
+              width:{ideal:1920,max:2560}, height:{ideal:1080,max:1440},
+              frameRate:{ideal:30,max:60} },
+      audio:{ echoCancellation:false, noiseSuppression:false,
+              autoGainControl:false, suppressLocalAudioPlayback:false },
       systemAudio:"exclude"
     });
   } catch(e){ return; }
 
   let finalStream = videoStream;
-
   if (videoStream.getAudioTracks().length === 0){
-    console.warn("Chrome n'a pas capturé l'audio de la fenêtre partagée. " +
-      "Astuce : dans la fenêtre de partage, coche bien la case " +
-      "'Partager l'audio' (le partage audio d'une simple fenêtre " +
-      "n'est supporté par Chrome que sur Windows ; sur Mac/Linux, " +
-      "utilise plutôt le partage d'un Onglet, ou une carte son virtuelle).");
-    // Chrome n'a pas capturé l'audio de la fenêtre →
-    // on cherche un périphérique loopback automatiquement
     const gameTrack = await getGameAudioTrack();
-    if (gameTrack){
-      finalStream = new MediaStream([
-        ...videoStream.getVideoTracks(),
-        gameTrack
-      ]);
-    } else {
-      alert("⚠️ Aucun son détecté (ni audio de fenêtre, ni périphérique " +
-        "loopback). La vidéo va être envoyée SANS SON. Vérifie la case " +
-        "'Partager l'audio' dans la fenêtre de partage Chrome, ou installe " +
-        "un câble audio virtuel (VB-Cable) si tu veux capturer le son du jeu.");
-    }
-    // Sinon : vidéo uniquement, sans audio
+    if (gameTrack)
+      finalStream = new MediaStream([...videoStream.getVideoTracks(), gameTrack]);
   }
 
   currentStream = finalStream;
@@ -698,8 +667,7 @@ async function startShare(){
 
   const boost = () => {
     try {
-      const pc = currentCall.peerConnection;
-      if (!pc) return;
+      const pc = currentCall.peerConnection; if (!pc) return;
       const sender = pc.getSenders().find(s => s.track?.kind === "video");
       if (sender){
         const p = sender.getParameters();
@@ -718,7 +686,143 @@ function stopShare(){
   currentCall?.close(); currentCall = null;
 }
 
-/* ======================== CONFIG DRAPEAUX ======================== */
+/* ================================================================
+   TWITCH LIVE
+   ================================================================ */
+const twitchChannels = {}; // slot → channel name ou null
+const twitchMuted   = {}; // slot → boolean
+
+function parseTwitchChannel(input){
+  // Accepte "nomchain", "twitch.tv/nomchain", "https://www.twitch.tv/nomchain"
+  const m = input.trim().match(/(?:twitch\.tv\/)?([A-Za-z0-9_]{3,25})(?:\/.*)?$/);
+  return m ? m[1].toLowerCase() : null;
+}
+
+function buildTwitchUrl(channel, muted){
+  // Le parent doit correspondre au domaine où la page est servie.
+  // - localhost : python -m http.server, Live Server, etc.
+  // - file://   : on essaie quand même localhost (Twitch le refuse, mais
+  //               on affiche une note utile).
+  const host = window.location.hostname || "localhost";
+  const params = new URLSearchParams({
+    channel,
+    parent: host,
+    autoplay: "true",
+    muted: muted ? "true" : "false"
+  });
+  return `https://player.twitch.tv/?${params}`;
+}
+
+function setTwitchStream(slot){
+  const input = prompt(
+    "Nom du channel Twitch ou URL du live :\n(ex: nomdustream  ou  https://www.twitch.tv/nomdustream)"
+  );
+  if (!input) return;
+
+  const channel = parseTwitchChannel(input);
+  if (!channel){ alert("Channel Twitch invalide."); return; }
+
+  twitchChannels[slot] = channel;
+  if (!(slot in twitchMuted)) twitchMuted[slot] = false;
+
+  // Coupe le WebRTC existant pour ce slot si présent
+  const old = delaySetups[slot];
+  if (old){
+    old.active = false;
+    old.frames.forEach(f => { try { f.bitmap.close(); } catch(e){} });
+    try { old.source && old.source.disconnect(); } catch(e){}
+    try { old.delayNode && old.delayNode.disconnect(); } catch(e){}
+    try { old.gainNode && old.gainNode.disconnect(); } catch(e){}
+    if (old.canvas) old.canvas.remove();
+    delete delaySetups[slot];
+  }
+  const v = videoElements[slot];
+  v.srcObject = null;
+  v.style.display = "none";
+
+  _renderTwitchFrame(slot);
+
+  // Bouton Twitch → rouge/live
+  const btn = document.getElementById("twitchbtn-" + slot);
+  if (btn){ btn.textContent = "📺✕"; btn.classList.add("is-live"); btn.title = "Retirer le live Twitch"; }
+
+  // Synchro bouton son
+  _syncMuteBtn(slot);
+  updateAudioFocus();
+}
+
+function _renderTwitchFrame(slot){
+  // Retire l'ancien iframe si présent
+  const old = document.getElementById("twitch-" + slot);
+  if (old) old.remove();
+
+  const container = document.getElementById("container-" + slot);
+  const iframe = document.createElement("iframe");
+  iframe.id = "twitch-" + slot;
+  iframe.className = "twitch-frame";
+  iframe.src = buildTwitchUrl(twitchChannels[slot], twitchMuted[slot]);
+  iframe.allowFullscreen = true;
+  iframe.allow = "autoplay; fullscreen";
+  container.appendChild(iframe);
+
+  // Badge si pas de hostname valide (ouverture file://)
+  if (!window.location.hostname){
+    const badge = document.getElementById("badge-" + slot);
+    if (badge){
+      badge.style.display = "block";
+      badge.style.fontSize = "11px";
+      badge.textContent = "⚠️ Sers le fichier en local pour Twitch (ex: python -m http.server)";
+    }
+  }
+}
+
+function removeTwitchStream(slot){
+  const iframe = document.getElementById("twitch-" + slot);
+  if (iframe) iframe.remove();
+  delete twitchChannels[slot];
+
+  const v = videoElements[slot];
+  v.style.display = "";
+
+  const badge = document.getElementById("badge-" + slot);
+  if (badge) badge.style.display = "none";
+
+  const btn = document.getElementById("twitchbtn-" + slot);
+  if (btn){ btn.textContent = "📺"; btn.classList.remove("is-live"); btn.title = "Mettre un live Twitch"; }
+
+  _syncMuteBtn(slot);
+}
+
+function toggleTwitch(slot){
+  if (twitchChannels[slot]) removeTwitchStream(slot);
+  else setTwitchStream(slot);
+}
+
+// Mute/unmute pour un slot Twitch : on recharge l'iframe avec muted=true/false
+function toggleTwitchMute(slot){
+  twitchMuted[slot] = !twitchMuted[slot];
+  _renderTwitchFrame(slot);
+  _syncMuteBtn(slot);
+}
+
+function _syncMuteBtn(slot){
+  const btn = document.getElementById("mutebtn-" + slot);
+  if (!btn) return;
+  if (twitchChannels[slot]){
+    const m = twitchMuted[slot];
+    btn.textContent = m ? "🔇" : "🔊";
+    btn.classList.toggle("is-muted", m);
+  } else {
+    const setup = delaySetups[slot];
+    const muted = !setup || setup.gainNode.gain.value === 0;
+    btn.textContent = muted ? "🔇" : "🔊";
+    btn.classList.toggle("is-muted", muted);
+  }
+}
+
+/* ================================================================
+   CONFIG DRAPEAUX
+   ================================================================ */
 const FLAGS = [
   ["fr","France"],["be","Belgique"],["ch","Suisse"],["ca","Canada"],
   ["ma","Maroc"],["dz","Algérie"],["tn","Tunisie"],["sn","Sénégal"],
@@ -759,11 +863,17 @@ slots.forEach((slot, i) => {
   const num = i + 1;
   videosDiv.insertAdjacentHTML("beforeend", `
   <div class="player-container" id="container-${slot}">
+    <div class="slot-placeholder">
+      <span class="ph-icon">📡</span>
+      <span class="ph-text">En attente d'un stream…</span>
+    </div>
     <video id="${slot}" autoplay playsinline muted></video>
     <div class="buffer-badge" id="badge-${slot}"></div>
 
     <button class="overlay-btn mute-btn" id="mutebtn-${slot}"
-            onclick="toggleMute('${slot}')" title="Couper le son">🔇</button>
+            onclick="onMuteClick('${slot}')" title="Couper le son">🔇</button>
+    <button class="overlay-btn twitch-btn" id="twitchbtn-${slot}"
+            onclick="toggleTwitch('${slot}')" title="Mettre un live Twitch">📺</button>
     <button class="overlay-btn toggle-eye-btn"
             onclick="togglePOV('${slot}')" title="Masquer ce POV">👁️</button>
     <button class="overlay-btn fullscreen-btn"
@@ -796,6 +906,8 @@ peer.on("call", call => {
   call.on("stream", stream => {
     const v = videoElements[slot];
     if (!v) return;
+    // Si un live Twitch était en place, on l'enlève
+    if (twitchChannels[slot]) removeTwitchStream(slot);
     v.srcObject = stream;
     v.play().catch(() => {});
     setupDelay(slot, stream);
@@ -874,25 +986,30 @@ document.querySelectorAll(".name-bar").forEach(bar => {
 
 loadPseudos();
 
-/* ====== CONTRÔLES AUDIO (via GainNode) ====== */
+/* ====== CONTRÔLES AUDIO ====== */
+function onMuteClick(slot){
+  getSharedAudioCtx();
+  if (twitchChannels[slot]) toggleTwitchMute(slot);
+  else                       toggleMute(slot);
+}
+
 function updateAudioFocus(){
   const activeSlot = slots[activeIndex];
   slots.forEach(s => {
     const isActive = (s === activeSlot);
+    // WebRTC : contrôle via GainNode
     const setup = delaySetups[s];
     if (setup) setup.gainNode.gain.value = isActive ? 1 : 0;
-    const btn = document.getElementById("mutebtn-" + s);
-    if (btn){
-      const muted = !setup || setup.gainNode.gain.value === 0;
-      btn.textContent = muted ? "🔇" : "🔊";
-      btn.classList.toggle("is-muted", muted);
+    // Twitch : on mute/unmute l'iframe si ce n'est pas le slot actif
+    if (twitchChannels[s] && !isActive && !twitchMuted[s]){
+      // on ne touche pas au choix utilisateur pour Twitch :
+      // Twitch gère son propre audio ; on laisse l'user contrôler
     }
+    _syncMuteBtn(s);
   });
 }
 
 function toggleMute(slot){
-  // Un clic est un geste utilisateur : on relance l'AudioContext au cas où.
-  getSharedAudioCtx();
   const setup = delaySetups[slot];
   const btn   = document.getElementById("mutebtn-" + slot);
   if (setup){
@@ -907,9 +1024,9 @@ function toggleMute(slot){
 
 function toggleFullscreen(containerId){
   const el = document.getElementById(containerId);
-  if (!document.fullscreenElement){ el.requestFullscreen().catch(() => {}); }
-  else if (document.fullscreenElement === el){ document.exitFullscreen(); }
-  else { document.exitFullscreen().then(() => el.requestFullscreen().catch(() => {})); }
+  if (!document.fullscreenElement) el.requestFullscreen().catch(() => {});
+  else if (document.fullscreenElement === el) document.exitFullscreen();
+  else document.exitFullscreen().then(() => el.requestFullscreen().catch(() => {}));
 }
 
 function togglePOV(id){
@@ -944,11 +1061,11 @@ function nextVisibleIndex(fromIndex, direction){
 }
 
 function addHiddenChip(id){
-  const bar     = document.getElementById("hidden-bar");
-  const nameEl  = document.getElementById("name-" + id);
-  const name    = nameEl ? nameEl.textContent.trim() : id;
+  const bar      = document.getElementById("hidden-bar");
+  const nameEl   = document.getElementById("name-" + id);
+  const name     = nameEl ? nameEl.textContent.trim() : id;
   const flagCode = localStorage.getItem("flag-" + id) || "";
-  const chip    = document.createElement("div");
+  const chip     = document.createElement("div");
   chip.className = "hidden-chip"; chip.id = "chip-" + id;
   chip.onclick = () => showPOV(id);
   chip.innerHTML = (flagCode
@@ -981,9 +1098,8 @@ function activateSlot(index){
   if (!container) return;
   container.classList.add("active");
   container.scrollIntoView({ behavior:"smooth", block:"center" });
-  if (document.fullscreenElement && document.fullscreenElement !== container){
+  if (document.fullscreenElement && document.fullscreenElement !== container)
     document.exitFullscreen().then(() => container.requestFullscreen().catch(() => {}));
-  }
   updateAudioFocus();
 }
 
@@ -992,7 +1108,7 @@ document.addEventListener("keydown", e => {
   const numMap = {"1":0,"2":1,"3":2,"4":3,"5":4,"6":5};
   if (numMap[e.key] !== undefined){ activateSlot(numMap[e.key]); return; }
   switch(e.key){
-    case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex,1));  break;
+    case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex, 1));  break;
     case "ArrowLeft":  case "ArrowUp":   e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex,-1)); break;
     case "Enter":  e.preventDefault(); toggleFullscreen("container-"+slots[activeIndex]); break;
     case "Escape": if (document.fullscreenElement) document.exitFullscreen(); break;
