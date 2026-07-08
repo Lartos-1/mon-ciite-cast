@@ -531,6 +531,7 @@ peer.on("call", call => {
     if (!v) return;
     v.srcObject = stream;
     v.play().catch(() => {});
+    updateAudioFocus(); // applique le son uniquement si ce POV est actif
   });
 });
 
@@ -645,7 +646,25 @@ document.querySelectorAll(".name-bar").forEach(bar => {
 loadPseudos();
 
 /* ====== CONTRÔLES ====== */
+/* Le son n'est jamais entendu que sur le POV actif (mis en avant) */
+function updateAudioFocus(){
+  const activeSlot = slots[activeIndex];
+  slots.forEach(s => {
+    const v = videoElements[s];
+    if (!v) return;
+    const isActive = (s === activeSlot);
+    v.muted = !isActive;
+    v.volume = isActive ? 1 : 0;
+    const btn = document.getElementById("mutebtn-" + s);
+    if (btn){
+      btn.textContent = v.muted ? "🔇" : "🔊";
+      btn.classList.toggle("is-muted", v.muted);
+    }
+  });
+}
+
 function toggleMute(id){
+  // Coupe/rétablit manuellement le son du POV actif uniquement
   const v = document.getElementById(id);
   const btn = document.getElementById("mutebtn-" + id);
   v.muted = !v.muted;
@@ -665,15 +684,42 @@ function toggleFullscreen(containerId){
 
 function togglePOV(id){
   const container = document.getElementById("container-" + id);
+  const wasActive = (slots[activeIndex] === id);
   // Cache le container entier
   container.style.display = "none";
   addHiddenChip(id);
+  // Si le POV masqué était actif, on bascule sur le prochain POV visible
+  if (wasActive){
+    const nextIdx = nextVisibleIndex(activeIndex, 1);
+    if (nextIdx !== activeIndex) activateSlot(nextIdx);
+    else updateAudioFocus(); // plus aucun POV visible
+  }
 }
 
 function showPOV(id){
   const container = document.getElementById("container-" + id);
   container.style.display = "";
   removeHiddenChip(id);
+}
+
+/* ====== HELPERS VISIBILITÉ POV (pour navigation + audio) ====== */
+function isSlotVisible(slot){
+  const c = document.getElementById("container-" + slot);
+  return !!c && c.style.display !== "none";
+}
+
+function getVisibleSlots(){
+  return slots.filter(isSlotVisible);
+}
+
+/* Trouve le prochain index visible en partant de fromIndex, dans une direction donnée (1 ou -1) */
+function nextVisibleIndex(fromIndex, direction){
+  let i = fromIndex;
+  for (let step = 0; step < slots.length; step++){
+    i = ((i + direction) % slots.length + slots.length) % slots.length;
+    if (isSlotVisible(slots[i])) return i;
+  }
+  return fromIndex; // aucun autre POV visible
 }
 
 function addHiddenChip(id){
@@ -713,8 +759,11 @@ function toggleId(){
 
 /* ====== NAVIGATION POV ====== */
 function activateSlot(index){
-  activeIndex = ((index % slots.length) + slots.length) % slots.length;
-  const slot = slots[activeIndex];
+  const idx = ((index % slots.length) + slots.length) % slots.length;
+  const slot = slots[idx];
+  // On ignore l'activation d'un POV masqué
+  if (!isSlotVisible(slot)) return;
+  activeIndex = idx;
   document.querySelectorAll(".player-container").forEach(c => c.classList.remove("active"));
   const container = document.getElementById("container-" + slot);
   if (!container) return;
@@ -723,6 +772,7 @@ function activateSlot(index){
   if (document.fullscreenElement && document.fullscreenElement !== container){
     document.exitFullscreen().then(() => container.requestFullscreen().catch(() => {}));
   }
+  updateAudioFocus(); // le son ne suit que le POV actif
 }
 
 document.addEventListener("keydown", e => {
@@ -730,8 +780,9 @@ document.addEventListener("keydown", e => {
   const numMap = {"1":0,"2":1,"3":2,"4":3,"5":4,"6":5};
   if (numMap[e.key] !== undefined){ activateSlot(numMap[e.key]); return; }
   switch(e.key){
-    case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(activeIndex+1); break;
-    case "ArrowLeft":  case "ArrowUp":   e.preventDefault(); activateSlot(activeIndex-1); break;
+    // Les flèches ne parcourent que les POV visibles (ceux masqués sont sautés)
+    case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex, 1)); break;
+    case "ArrowLeft":  case "ArrowUp":   e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex, -1)); break;
     case "Enter":  e.preventDefault(); toggleFullscreen("container-"+slots[activeIndex]); break;
     case "Escape": if (document.fullscreenElement) document.exitFullscreen(); break;
   }
