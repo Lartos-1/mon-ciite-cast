@@ -72,13 +72,15 @@ button:hover, select:hover{
   position:relative;
   aspect-ratio:16/9;
   border:1px solid #24243a;
-  transition:border-color .2s,box-shadow .2s,transform .2s;
+  transition:border-color .2s,box-shadow .2s;
+  /* NOTE: No transform here — transform creates a stacking context
+     that breaks position:fixed children (flag picker). */
 }
 
 .player-container.active{
   border:2px solid #a855f7;
   box-shadow:0 0 20px rgba(168,85,247,0.5);
-  transform:scale(1.02);
+  /* transform removed intentionally — it breaks position:fixed flag picker */
 }
 
 .player-container:fullscreen{
@@ -91,7 +93,7 @@ button:hover, select:hover{
 
 .player-container:fullscreen video{
   width:100%;height:100%;
-  object-fit:cover; /* remplit tout l'écran, aucune bande noire */
+  object-fit:cover;
   border-radius:0;
 }
 
@@ -100,13 +102,13 @@ video{
   top:0;left:0;
   width:100%;
   height:100%;
-  object-fit:cover; /* remplit toute la carte, sans bande noire */
+  object-fit:cover;
   border-radius:0;
-  background:#000; /* noir tant qu'aucun stream n'est reçu */
+  background:#000;
   vertical-align:block;
 }
 
-/* ===== BOUTONS OVERLAY (œil + mute + plein écran) — flottent sur la vidéo ===== */
+/* ===== BOUTONS OVERLAY ===== */
 .overlay-btn{
   position:absolute;
   top:8px;
@@ -130,7 +132,6 @@ video{
 .toggle-eye-btn{ right:8px; }
 .fullscreen-btn{ right:8px; top:44px; }
 
-/* Ces boutons disparaissent une fois en plein écran */
 .player-container:fullscreen .toggle-eye-btn,
 .player-container:fullscreen .fullscreen-btn{
   display:none;
@@ -182,7 +183,6 @@ video{
   background:rgba(168,85,247,0.2);
 }
 
-/* Image drapeau dans le bouton */
 .flag-btn img{
   width:22px;
   height:15px;
@@ -191,7 +191,6 @@ video{
   display:block;
 }
 
-/* Icône par défaut quand pas de drapeau */
 .flag-btn .no-flag{
   font-size:14px;
   line-height:1;
@@ -217,15 +216,17 @@ video{
   background:rgba(20,20,34,0.6);
 }
 
-/* ===== PICKER DRAPEAU ===== */
-.flag-picker{
-  position:fixed;          /* fixed = toujours dans la fenêtre */
+/* ===== PICKER DRAPEAU GLOBAL (attaché au body, pas aux containers) ===== */
+/* FIX: le picker est maintenant un enfant direct de <body>
+   → plus jamais bloqué par transform/overflow d'un parent */
+#global-flag-picker{
+  position:fixed;
   background:#1a1a2e;
   border:1px solid rgba(168,85,247,0.5);
   border-radius:14px;
   padding:8px;
   display:none;
-  z-index:9999;
+  z-index:99999;
   box-shadow:0 6px 30px rgba(0,0,0,0.8);
   width:260px;
   flex-wrap:wrap;
@@ -235,11 +236,10 @@ video{
   overflow-y:auto;
 }
 
-.flag-picker.open{
+#global-flag-picker.open{
   display:flex;
 }
 
-/* Chaque option drapeau */
 .flag-option{
   display:flex;
   flex-direction:column;
@@ -275,7 +275,6 @@ video{
   max-width:46px;
 }
 
-/* Bouton reset */
 .reset-flag-btn{
   font-size:11px;
   padding:4px 10px;
@@ -373,9 +372,12 @@ video{
   <div id="hidden-bar-label">POVs masqués — clique pour réafficher</div>
 </div>
 
+<!-- FIX: picker global unique, enfant direct de <body>
+     → jamais clippé par transform ou overflow des containers vidéo -->
+<div id="global-flag-picker"></div>
+
 <script>
-/* ======================== CONFIG DRAPEAUX (codes ISO) ======================== */
-// [code ISO lowercase, label]  — images servies par flagcdn.com
+/* ======================== CONFIG DRAPEAUX ======================== */
 const FLAGS = [
   ["fr","France"],
   ["be","Belgique"],
@@ -418,7 +420,6 @@ const FLAGS = [
   ["ro","Roumanie"],
   ["gr","Grèce"],
   ["at","Autriche"],
-  ["be","Belgique"],
   ["bg","Bulgarie"],
   ["by","Biélorussie"],
   ["ba","Bosnie-Herzégovine"],
@@ -475,15 +476,6 @@ const videosDiv = document.getElementById("videos");
 
 slots.forEach((slot, i) => {
   const num = i + 1;
-
-  // Génère les options du picker
-  const pickerItems = FLAGS.map(([code, label]) =>
-    `<button class="flag-option" onclick="pickFlag('${slot}','${code}')" title="${label}">
-       ${flagImgTag(code,28)}
-       <span>${label}</span>
-     </button>`
-  ).join("");
-
   videosDiv.insertAdjacentHTML("beforeend", `
   <div class="player-container" id="container-${slot}">
     <video id="${slot}" autoplay playsinline></video>
@@ -493,7 +485,7 @@ slots.forEach((slot, i) => {
     <button class="overlay-btn toggle-eye-btn"
             onclick="togglePOV('${slot}')" title="Masquer ce POV">👁️</button>
     <button class="overlay-btn fullscreen-btn"
-            onclick="toggleFullscreen('container-${slot}')" title="Plein écran">⬜</button>
+            onclick="toggleFullscreen('container-${slot}')" title="Plein écran">⛶</button>
 
     <!-- Bandeau bas centre -->
     <div class="bottom-label" id="label-${slot}">
@@ -506,13 +498,77 @@ slots.forEach((slot, i) => {
            contenteditable="true" spellcheck="false"
            data-slot="${slot}">POV ${num}</div>
     </div>
-
-    <!-- Picker -->
-    <div class="flag-picker" id="picker-${slot}">
-      ${pickerItems}
-      <button class="reset-flag-btn" onclick="pickFlag('${slot}','')">✕ Retirer le drapeau</button>
-    </div>
   </div>`);
+});
+
+/* ======================== PICKER GLOBAL ========================
+   FIX: Un seul picker au niveau body — échappe aux stacking contexts
+   créés par transform/overflow sur les containers vidéo.
+   On le remplit dynamiquement à l'ouverture. */
+const globalPicker = document.getElementById("global-flag-picker");
+let pickerCurrentSlot = null;
+
+function buildPickerContent(slot){
+  const items = FLAGS.map(([code, label]) =>
+    `<button class="flag-option" onclick="pickFlag('${slot}','${code}')" title="${label}">
+       ${flagImgTag(code,28)}
+       <span>${label}</span>
+     </button>`
+  ).join("");
+  globalPicker.innerHTML = items +
+    `<button class="reset-flag-btn" onclick="pickFlag('${slot}','')">✕ Retirer le drapeau</button>`;
+}
+
+function togglePicker(slot, e){
+  e.stopPropagation();
+  // Si déjà ouvert sur le même slot → fermer
+  if (globalPicker.classList.contains("open") && pickerCurrentSlot === slot){
+    globalPicker.classList.remove("open");
+    pickerCurrentSlot = null;
+    return;
+  }
+  // Construire le contenu pour ce slot
+  pickerCurrentSlot = slot;
+  buildPickerContent(slot);
+
+  // Positionner le picker près du bouton drapeau
+  const btn = document.getElementById("flagbtn-" + slot);
+  const rect = btn.getBoundingClientRect();
+  const pickerH = 320;
+  const pickerW = 260;
+
+  let top;
+  if (rect.top > pickerH + 8){
+    top = rect.top - pickerH - 8;
+  } else {
+    top = rect.bottom + 8;
+  }
+
+  let left = rect.left + rect.width/2 - pickerW/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pickerW - 8));
+
+  globalPicker.style.top  = top  + "px";
+  globalPicker.style.left = left + "px";
+  globalPicker.classList.add("open");
+}
+
+function pickFlag(slot, code){
+  const imgSpan = document.getElementById("flagimg-" + slot);
+  if (code){
+    imgSpan.innerHTML = flagImgTag(code, 22);
+  } else {
+    imgSpan.innerHTML = "🌐";
+  }
+  localStorage.setItem("flag-" + slot, code);
+  globalPicker.classList.remove("open");
+  pickerCurrentSlot = null;
+}
+
+document.addEventListener("click", e => {
+  if (!globalPicker.contains(e.target)){
+    globalPicker.classList.remove("open");
+    pickerCurrentSlot = null;
+  }
 });
 
 /* ======================== PEER / WebRTC ======================== */
@@ -531,18 +587,35 @@ peer.on("call", call => {
     if (!v) return;
     v.srcObject = stream;
     v.play().catch(() => {});
-    updateAudioFocus(); // applique le son uniquement si ce POV est actif
+    updateAudioFocus();
   });
 });
 
-/* ====== PARTAGE D'ÉCRAN HAUTE QUALITÉ ====== */
+/* ====== PARTAGE D'ÉCRAN — son du jeu, pas son système ======
+   FIX audio :
+   - displaySurface:"window" → préfère la capture d'une fenêtre spécifique
+     (le jeu), plutôt que tout l'écran avec tous les sons système.
+   - suppressLocalAudioPlayback:false → le streameur entend toujours
+     son jeu pendant qu'il envoie l'audio (pas de coupure locale).
+   - echoCancellation/noiseSuppression/autoGainControl désactivés →
+     audio brut du jeu sans traitement vocal parasite. */
 function startShare(){
   const id = prompt("Peer ID du destinataire :");
   if (!id) return;
   const slot = document.getElementById("targetSlot").value;
   navigator.mediaDevices.getDisplayMedia({
-    video:{ width:{ideal:1920,max:2560}, height:{ideal:1080,max:1440}, frameRate:{ideal:30,max:60} },
-    audio:{ echoCancellation:false, noiseSuppression:false, autoGainControl:false }
+    video:{
+      displaySurface:"window",
+      width:{ideal:1920,max:2560},
+      height:{ideal:1080,max:1440},
+      frameRate:{ideal:30,max:60}
+    },
+    audio:{
+      echoCancellation:false,
+      noiseSuppression:false,
+      autoGainControl:false,
+      suppressLocalAudioPlayback:false
+    }
   }).then(stream => {
     currentStream = stream;
     currentCall = peer.call(id, stream, { metadata:{ slot } });
@@ -568,54 +641,6 @@ function stopShare(){
   currentStream?.getTracks().forEach(t => t.stop()); currentStream = null;
   currentCall?.close(); currentCall = null;
 }
-
-/* ====== DRAPEAU PICKER ====== */
-function togglePicker(slot, e){
-  e.stopPropagation();
-  const picker = document.getElementById("picker-" + slot);
-  const isOpen = picker.classList.contains("open");
-  document.querySelectorAll(".flag-picker.open").forEach(p => p.classList.remove("open"));
-  if (!isOpen){
-    // Calcule la position du bouton dans la fenêtre
-    const btn = document.getElementById("flagbtn-" + slot);
-    const rect = btn.getBoundingClientRect();
-    const pickerH = 320;
-    const pickerW = 260;
-
-    // Ouvre vers le haut ou vers le bas selon l'espace disponible
-    let top;
-    if (rect.top > pickerH + 8){
-      // Assez de place au-dessus
-      top = rect.top - pickerH - 8;
-    } else {
-      // Ouvre vers le bas
-      top = rect.bottom + 8;
-    }
-
-    // Centre horizontalement sur le bouton, reste dans la fenêtre
-    let left = rect.left + rect.width/2 - pickerW/2;
-    left = Math.max(8, Math.min(left, window.innerWidth - pickerW - 8));
-
-    picker.style.top  = top  + "px";
-    picker.style.left = left + "px";
-    picker.classList.add("open");
-  }
-}
-
-function pickFlag(slot, code){
-  const imgSpan = document.getElementById("flagimg-" + slot);
-  if (code){
-    imgSpan.innerHTML = flagImgTag(code, 22);
-  } else {
-    imgSpan.innerHTML = "🌐";
-  }
-  localStorage.setItem("flag-" + slot, code);
-  document.getElementById("picker-" + slot).classList.remove("open");
-}
-
-document.addEventListener("click", () => {
-  document.querySelectorAll(".flag-picker.open").forEach(p => p.classList.remove("open"));
-});
 
 /* ====== NOMS ÉDITABLES ====== */
 function loadPseudos(){
@@ -645,8 +670,7 @@ document.querySelectorAll(".name-bar").forEach(bar => {
 
 loadPseudos();
 
-/* ====== CONTRÔLES ====== */
-/* Le son n'est jamais entendu que sur le POV actif (mis en avant) */
+/* ====== CONTRÔLES AUDIO ====== */
 function updateAudioFocus(){
   const activeSlot = slots[activeIndex];
   slots.forEach(s => {
@@ -664,7 +688,6 @@ function updateAudioFocus(){
 }
 
 function toggleMute(id){
-  // Coupe/rétablit manuellement le son du POV actif uniquement
   const v = document.getElementById(id);
   const btn = document.getElementById("mutebtn-" + id);
   v.muted = !v.muted;
@@ -685,14 +708,12 @@ function toggleFullscreen(containerId){
 function togglePOV(id){
   const container = document.getElementById("container-" + id);
   const wasActive = (slots[activeIndex] === id);
-  // Cache le container entier
   container.style.display = "none";
   addHiddenChip(id);
-  // Si le POV masqué était actif, on bascule sur le prochain POV visible
   if (wasActive){
     const nextIdx = nextVisibleIndex(activeIndex, 1);
     if (nextIdx !== activeIndex) activateSlot(nextIdx);
-    else updateAudioFocus(); // plus aucun POV visible
+    else updateAudioFocus();
   }
 }
 
@@ -702,32 +723,25 @@ function showPOV(id){
   removeHiddenChip(id);
 }
 
-/* ====== HELPERS VISIBILITÉ POV (pour navigation + audio) ====== */
+/* ====== HELPERS VISIBILITÉ ====== */
 function isSlotVisible(slot){
   const c = document.getElementById("container-" + slot);
   return !!c && c.style.display !== "none";
 }
 
-function getVisibleSlots(){
-  return slots.filter(isSlotVisible);
-}
-
-/* Trouve le prochain index visible en partant de fromIndex, dans une direction donnée (1 ou -1) */
 function nextVisibleIndex(fromIndex, direction){
   let i = fromIndex;
   for (let step = 0; step < slots.length; step++){
     i = ((i + direction) % slots.length + slots.length) % slots.length;
     if (isSlotVisible(slots[i])) return i;
   }
-  return fromIndex; // aucun autre POV visible
+  return fromIndex;
 }
 
 function addHiddenChip(id){
   const bar = document.getElementById("hidden-bar");
-  // Récupère le nom et le drapeau actuels
-  const slot = id; // id = "som-slot1" etc.
+  const slot = id;
   const nameEl = document.getElementById("name-" + slot);
-  const flagEl = document.getElementById("flagimg-" + slot);
   const name = nameEl ? nameEl.textContent.trim() : slot;
   const flagCode = localStorage.getItem("flag-" + slot) || "";
 
@@ -747,7 +761,6 @@ function addHiddenChip(id){
 function removeHiddenChip(id){
   const chip = document.getElementById("chip-" + id);
   if (chip) chip.remove();
-  // Cache la barre si plus rien dedans
   const bar = document.getElementById("hidden-bar");
   if (!bar.querySelector(".hidden-chip")) bar.style.display = "none";
 }
@@ -761,7 +774,6 @@ function toggleId(){
 function activateSlot(index){
   const idx = ((index % slots.length) + slots.length) % slots.length;
   const slot = slots[idx];
-  // On ignore l'activation d'un POV masqué
   if (!isSlotVisible(slot)) return;
   activeIndex = idx;
   document.querySelectorAll(".player-container").forEach(c => c.classList.remove("active"));
@@ -772,7 +784,7 @@ function activateSlot(index){
   if (document.fullscreenElement && document.fullscreenElement !== container){
     document.exitFullscreen().then(() => container.requestFullscreen().catch(() => {}));
   }
-  updateAudioFocus(); // le son ne suit que le POV actif
+  updateAudioFocus();
 }
 
 document.addEventListener("keydown", e => {
@@ -780,7 +792,6 @@ document.addEventListener("keydown", e => {
   const numMap = {"1":0,"2":1,"3":2,"4":3,"5":4,"6":5};
   if (numMap[e.key] !== undefined){ activateSlot(numMap[e.key]); return; }
   switch(e.key){
-    // Les flèches ne parcourent que les POV visibles (ceux masqués sont sautés)
     case "ArrowRight": case "ArrowDown": e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex, 1)); break;
     case "ArrowLeft":  case "ArrowUp":   e.preventDefault(); activateSlot(nextVisibleIndex(activeIndex, -1)); break;
     case "Enter":  e.preventDefault(); toggleFullscreen("container-"+slots[activeIndex]); break;
