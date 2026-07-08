@@ -57,64 +57,6 @@ button:hover, select:hover{
   margin-bottom:6px;
 }
 
-/* ===== CONTRÔLE DÉLAI ===== */
-#delay-bar{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  gap:10px;
-  margin-bottom:12px;
-  flex-wrap:wrap;
-}
-
-#delay-bar label{
-  font-size:13px;
-  color:#b0b0cc;
-  font-weight:600;
-}
-
-#delay-slider{
-  -webkit-appearance:none;
-  appearance:none;
-  width:200px;
-  height:6px;
-  border-radius:4px;
-  background:#2a2a40;
-  outline:none;
-  cursor:pointer;
-  border:none;
-  padding:0;
-  margin:0;
-}
-
-#delay-slider::-webkit-slider-thumb{
-  -webkit-appearance:none;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:#a855f7;
-  cursor:pointer;
-  box-shadow:0 0 6px rgba(168,85,247,0.7);
-}
-
-#delay-slider::-moz-range-thumb{
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  background:#a855f7;
-  cursor:pointer;
-  border:none;
-  box-shadow:0 0 6px rgba(168,85,247,0.7);
-}
-
-#delay-value{
-  font-size:14px;
-  font-weight:800;
-  color:#a855f7;
-  min-width:48px;
-  text-align:left;
-}
-
 #videos{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(320px,1fr));
@@ -147,7 +89,6 @@ button:hover, select:hover{
 }
 
 .player-container:fullscreen video,
-.player-container:fullscreen .delay-canvas,
 .player-container:fullscreen .twitch-frame{
   width:100% !important;
   height:100% !important;
@@ -164,15 +105,6 @@ video{
   border-radius:0;
   background:#000;
   vertical-align:block;
-}
-
-.delay-canvas{
-  position:absolute;
-  top:0; left:0;
-  width:100%; height:100%;
-  object-fit:cover;
-  z-index:1;
-  display:none;
 }
 
 /* ===== TWITCH IFRAME ===== */
@@ -203,23 +135,6 @@ video{
 
 .slot-placeholder .ph-icon{ font-size:32px; }
 .slot-placeholder .ph-text{ font-size:11px; color:#2a2a40; }
-
-.buffer-badge{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  background:rgba(10,10,20,0.85);
-  border:1px solid rgba(168,85,247,0.5);
-  border-radius:12px;
-  padding:8px 16px;
-  font-size:13px;
-  font-weight:700;
-  color:#a855f7;
-  z-index:5;
-  display:none;
-  pointer-events:none;
-}
 
 /* ===== BOUTONS OVERLAY ===== */
 .overlay-btn{
@@ -475,13 +390,6 @@ video{
   <button onclick="stopShare()">Stop</button>
 </div>
 
-<div id="delay-bar">
-  <label for="delay-slider">🕐 Délai :</label>
-  <input type="range" id="delay-slider" min="1" max="60" step="0.5" value="5"
-         oninput="onDelayChange(this.value)">
-  <span id="delay-value">5.0 s</span>
-</div>
-
 <p id="hint">
   Flèches ← → : changer de POV &nbsp;|&nbsp; Entrée : plein écran &nbsp;|&nbsp;
   📺 : mettre un live Twitch &nbsp;|&nbsp; Cliquer le drapeau / nom pour modifier
@@ -496,119 +404,6 @@ video{
 <div id="global-flag-picker"></div>
 
 <script>
-/* ================================================================
-   DÉLAI
-   ================================================================ */
-let DELAY_MS = 5000;
-const delaySetups = {};
-
-let sharedAudioCtx = null;
-function getSharedAudioCtx(){
-  if (!sharedAudioCtx)
-    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (sharedAudioCtx.state === "suspended")
-    sharedAudioCtx.resume().catch(() => {});
-  return sharedAudioCtx;
-}
-["click","keydown","touchstart"].forEach(evt =>
-  document.addEventListener(evt, () => {
-    if (sharedAudioCtx && sharedAudioCtx.state === "suspended")
-      sharedAudioCtx.resume().catch(() => {});
-  }, { passive:true })
-);
-
-function onDelayChange(val){
-  DELAY_MS = parseFloat(val) * 1000;
-  document.getElementById("delay-value").textContent = parseFloat(val).toFixed(1) + " s";
-  Object.values(delaySetups).forEach(s => {
-    if (s && s.delayNode) s.delayNode.delayTime.value = DELAY_MS / 1000;
-  });
-}
-
-function setupDelay(slot, stream){
-  const old = delaySetups[slot];
-  if (old){
-    old.active = false;
-    old.frames.forEach(f => { try { f.bitmap.close(); } catch(e){} });
-    try { old.source && old.source.disconnect(); } catch(e){}
-    try { old.delayNode && old.delayNode.disconnect(); } catch(e){}
-    try { old.gainNode && old.gainNode.disconnect(); } catch(e){}
-    if (old.canvas) old.canvas.remove();
-  }
-
-  const v = videoElements[slot];
-  v.muted = true;
-
-  const audioCtx = getSharedAudioCtx();
-  const delayNode = audioCtx.createDelay(120);
-  delayNode.delayTime.value = DELAY_MS / 1000;
-  const gainNode = audioCtx.createGain();
-  gainNode.gain.value = 0;
-
-  let source = null;
-  if (stream.getAudioTracks().length > 0){
-    try {
-      source = audioCtx.createMediaStreamSource(stream);
-      source.connect(delayNode);
-      delayNode.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-    } catch(e){ source = null; }
-  }
-
-  const container = document.getElementById("container-" + slot);
-  const canvas = document.createElement("canvas");
-  canvas.className = "delay-canvas";
-  container.appendChild(canvas);
-  const canvasCtx = canvas.getContext("2d");
-
-  const badge = document.getElementById("badge-" + slot);
-  if (badge){
-    badge.style.display = "block";
-    badge.textContent = "⏳ Buffering " + (DELAY_MS/1000).toFixed(1) + "s...";
-  }
-
-  const setup = { ctx:audioCtx, source, gainNode, delayNode, frames:[], active:true, canvas, canvasCtx };
-  delaySetups[slot] = setup;
-
-  function captureLoop(){
-    if (!setup.active) return;
-    if (v.readyState >= 2 && v.videoWidth > 0){
-      if (canvas.width !== v.videoWidth){
-        canvas.width  = v.videoWidth;
-        canvas.height = v.videoHeight;
-        canvas.style.display = "block";
-      }
-      createImageBitmap(v).then(bmp => {
-        if (!setup.active){ bmp.close(); return; }
-        setup.frames.push({ bitmap:bmp, ts:performance.now() });
-        const cutoff = performance.now() - DELAY_MS - 5000;
-        while (setup.frames.length > 1 && setup.frames[0].ts < cutoff){
-          try { setup.frames[0].bitmap.close(); } catch(e){}
-          setup.frames.shift();
-        }
-      }).catch(() => {});
-    }
-    setTimeout(captureLoop, 33);
-  }
-
-  let bufferingDone = false;
-  function displayLoop(){
-    if (!setup.active) return;
-    const target = performance.now() - DELAY_MS;
-    let best = null;
-    for (let i = setup.frames.length - 1; i >= 0; i--)
-      if (setup.frames[i].ts <= target){ best = setup.frames[i]; break; }
-    if (best && canvas.width > 0){
-      canvasCtx.drawImage(best.bitmap, 0, 0, canvas.width, canvas.height);
-      if (!bufferingDone && badge){ badge.style.display = "none"; bufferingDone = true; }
-    }
-    requestAnimationFrame(displayLoop);
-  }
-
-  captureLoop();
-  displayLoop();
-}
-
 /* ================================================================
    AUDIO DU JEU — détection automatique du loopback
    ================================================================ */
@@ -638,7 +433,6 @@ async function getGameAudioTrack(){
 }
 
 async function startShare(){
-  getSharedAudioCtx();
   const id = prompt("Peer ID du destinataire :");
   if (!id) return;
   const slot = document.getElementById("targetSlot").value;
@@ -693,16 +487,11 @@ const twitchChannels = {}; // slot → channel name ou null
 const twitchMuted   = {}; // slot → boolean
 
 function parseTwitchChannel(input){
-  // Accepte "nomchain", "twitch.tv/nomchain", "https://www.twitch.tv/nomchain"
   const m = input.trim().match(/(?:twitch\.tv\/)?([A-Za-z0-9_]{3,25})(?:\/.*)?$/);
   return m ? m[1].toLowerCase() : null;
 }
 
 function buildTwitchUrl(channel, muted){
-  // Le parent doit correspondre au domaine où la page est servie.
-  // - localhost : python -m http.server, Live Server, etc.
-  // - file://   : on essaie quand même localhost (Twitch le refuse, mais
-  //               on affiche une note utile).
   const host = window.location.hostname || "localhost";
   const params = new URLSearchParams({
     channel,
@@ -725,34 +514,20 @@ function setTwitchStream(slot){
   twitchChannels[slot] = channel;
   if (!(slot in twitchMuted)) twitchMuted[slot] = false;
 
-  // Coupe le WebRTC existant pour ce slot si présent
-  const old = delaySetups[slot];
-  if (old){
-    old.active = false;
-    old.frames.forEach(f => { try { f.bitmap.close(); } catch(e){} });
-    try { old.source && old.source.disconnect(); } catch(e){}
-    try { old.delayNode && old.delayNode.disconnect(); } catch(e){}
-    try { old.gainNode && old.gainNode.disconnect(); } catch(e){}
-    if (old.canvas) old.canvas.remove();
-    delete delaySetups[slot];
-  }
   const v = videoElements[slot];
   v.srcObject = null;
   v.style.display = "none";
 
   _renderTwitchFrame(slot);
 
-  // Bouton Twitch → rouge/live
   const btn = document.getElementById("twitchbtn-" + slot);
   if (btn){ btn.textContent = "📺✕"; btn.classList.add("is-live"); btn.title = "Retirer le live Twitch"; }
 
-  // Synchro bouton son
   _syncMuteBtn(slot);
   updateAudioFocus();
 }
 
 function _renderTwitchFrame(slot){
-  // Retire l'ancien iframe si présent
   const old = document.getElementById("twitch-" + slot);
   if (old) old.remove();
 
@@ -764,16 +539,6 @@ function _renderTwitchFrame(slot){
   iframe.allowFullscreen = true;
   iframe.allow = "autoplay; fullscreen";
   container.appendChild(iframe);
-
-  // Badge si pas de hostname valide (ouverture file://)
-  if (!window.location.hostname){
-    const badge = document.getElementById("badge-" + slot);
-    if (badge){
-      badge.style.display = "block";
-      badge.style.fontSize = "11px";
-      badge.textContent = "⚠️ Sers le fichier en local pour Twitch (ex: python -m http.server)";
-    }
-  }
 }
 
 function removeTwitchStream(slot){
@@ -783,9 +548,6 @@ function removeTwitchStream(slot){
 
   const v = videoElements[slot];
   v.style.display = "";
-
-  const badge = document.getElementById("badge-" + slot);
-  if (badge) badge.style.display = "none";
 
   const btn = document.getElementById("twitchbtn-" + slot);
   if (btn){ btn.textContent = "📺"; btn.classList.remove("is-live"); btn.title = "Mettre un live Twitch"; }
@@ -798,7 +560,6 @@ function toggleTwitch(slot){
   else setTwitchStream(slot);
 }
 
-// Mute/unmute pour un slot Twitch : on recharge l'iframe avec muted=true/false
 function toggleTwitchMute(slot){
   twitchMuted[slot] = !twitchMuted[slot];
   _renderTwitchFrame(slot);
@@ -813,8 +574,8 @@ function _syncMuteBtn(slot){
     btn.textContent = m ? "🔇" : "🔊";
     btn.classList.toggle("is-muted", m);
   } else {
-    const setup = delaySetups[slot];
-    const muted = !setup || setup.gainNode.gain.value === 0;
+    const v = videoElements[slot];
+    const muted = !v || v.muted;
     btn.textContent = muted ? "🔇" : "🔊";
     btn.classList.toggle("is-muted", muted);
   }
@@ -867,8 +628,7 @@ slots.forEach((slot, i) => {
       <span class="ph-icon">📡</span>
       <span class="ph-text">En attente d'un stream…</span>
     </div>
-    <video id="${slot}" autoplay playsinline muted></video>
-    <div class="buffer-badge" id="badge-${slot}"></div>
+    <video id="${slot}" autoplay playsinline></video>
 
     <button class="overlay-btn mute-btn" id="mutebtn-${slot}"
             onclick="onMuteClick('${slot}')" title="Couper le son">🔇</button>
@@ -906,11 +666,10 @@ peer.on("call", call => {
   call.on("stream", stream => {
     const v = videoElements[slot];
     if (!v) return;
-    // Si un live Twitch était en place, on l'enlève
     if (twitchChannels[slot]) removeTwitchStream(slot);
     v.srcObject = stream;
+    v.muted = (slots.indexOf(slot) !== activeIndex);
     v.play().catch(() => {});
-    setupDelay(slot, stream);
     updateAudioFocus();
   });
 });
@@ -988,7 +747,6 @@ loadPseudos();
 
 /* ====== CONTRÔLES AUDIO ====== */
 function onMuteClick(slot){
-  getSharedAudioCtx();
   if (twitchChannels[slot]) toggleTwitchMute(slot);
   else                       toggleMute(slot);
 }
@@ -997,27 +755,20 @@ function updateAudioFocus(){
   const activeSlot = slots[activeIndex];
   slots.forEach(s => {
     const isActive = (s === activeSlot);
-    // WebRTC : contrôle via GainNode
-    const setup = delaySetups[s];
-    if (setup) setup.gainNode.gain.value = isActive ? 1 : 0;
-    // Twitch : on mute/unmute l'iframe si ce n'est pas le slot actif
-    if (twitchChannels[s] && !isActive && !twitchMuted[s]){
-      // on ne touche pas au choix utilisateur pour Twitch :
-      // Twitch gère son propre audio ; on laisse l'user contrôler
-    }
+    const v = videoElements[s];
+    if (v && v.srcObject) v.muted = !isActive;
     _syncMuteBtn(s);
   });
 }
 
 function toggleMute(slot){
-  const setup = delaySetups[slot];
-  const btn   = document.getElementById("mutebtn-" + slot);
-  if (setup){
-    const isMuted = setup.gainNode.gain.value === 0;
-    setup.gainNode.gain.value = isMuted ? 1 : 0;
+  const v = videoElements[slot];
+  const btn = document.getElementById("mutebtn-" + slot);
+  if (v){
+    v.muted = !v.muted;
     if (btn){
-      btn.textContent = !isMuted ? "🔇" : "🔊";
-      btn.classList.toggle("is-muted", !isMuted);
+      btn.textContent = v.muted ? "🔇" : "🔊";
+      btn.classList.toggle("is-muted", v.muted);
     }
   }
 }
