@@ -466,6 +466,33 @@ video{
 let DELAY_MS = 5000;
 const delaySetups = {};
 
+/* ------------------------------------------------------------------
+   AudioContext PARTAGÉ — corrige le bug "le son ne marche pas".
+   Avant : un `new AudioContext()` était créé à CHAQUE flux reçu, dans
+   le handler `call.on("stream", ...)`. Ce handler n'est pas déclenché
+   par un clic utilisateur, donc Chrome démarre l'AudioContext en état
+   "suspended" et aucun son ne sort jamais (silence total, sans erreur
+   visible). On utilise maintenant UN SEUL AudioContext créé/relancé
+   au premier clic sur la page, et on le "resume()" à chaque interaction.
+   ------------------------------------------------------------------ */
+let sharedAudioCtx = null;
+function getSharedAudioCtx(){
+  if (!sharedAudioCtx){
+    sharedAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (sharedAudioCtx.state === "suspended"){
+    sharedAudioCtx.resume().catch(() => {});
+  }
+  return sharedAudioCtx;
+}
+["click","keydown","touchstart"].forEach(evt => {
+  document.addEventListener(evt, () => {
+    if (sharedAudioCtx && sharedAudioCtx.state === "suspended"){
+      sharedAudioCtx.resume().catch(() => {});
+    }
+  }, { passive:true });
+});
+
 function onDelayChange(val){
   DELAY_MS = parseFloat(val) * 1000;
   document.getElementById("delay-value").textContent = parseFloat(val).toFixed(1) + " s";
@@ -479,22 +506,39 @@ function setupDelay(slot, stream){
   if (old){
     old.active = false;
     old.frames.forEach(f => { try { f.bitmap.close(); } catch(e){} });
-    try { old.ctx.close(); } catch(e){}
+    // On ne ferme plus le contexte (il est partagé entre tous les slots),
+    // on déconnecte juste les noeuds audio de cet ancien flux.
+    try { old.source && old.source.disconnect(); } catch(e){}
+    try { old.delayNode && old.delayNode.disconnect(); } catch(e){}
+    try { old.gainNode && old.gainNode.disconnect(); } catch(e){}
     if (old.canvas) old.canvas.remove();
   }
 
   const v = videoElements[slot];
   v.muted = true;
 
-  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const audioCtx = getSharedAudioCtx();
   const delayNode = audioCtx.createDelay(120);
   delayNode.delayTime.value = DELAY_MS / 1000;
   const gainNode = audioCtx.createGain();
   gainNode.gain.value = 0;
-  const source = audioCtx.createMediaStreamSource(stream);
-  source.connect(delayNode);
-  delayNode.connect(gainNode);
-  gainNode.connect(audioCtx.destination);
+
+  // Le flux peut arriver sans piste audio (ex: capture de fenêtre sans
+  // audio côté émetteur) : on protège pour ne pas casser l'affichage vidéo.
+  let source = null;
+  if (stream.getAudioTracks().length > 0){
+    try {
+      source = audioCtx.createMediaStreamSource(stream);
+      source.connect(delayNode);
+      delayNode.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+    } catch(e){
+      console.warn("Impossible de router l'audio pour", slot, e);
+      source = null;
+    }
+  } else {
+    console.warn("Aucune piste audio reçue pour", slot, "- le flux distant n'envoie pas de son.");
+  }
 
   const container = document.getElementById("container-" + slot);
 
@@ -509,7 +553,7 @@ function setupDelay(slot, stream){
     badge.textContent = "⏳ Buffering " + (DELAY_MS/1000).toFixed(1) + "s...";
   }
 
-  const setup = { ctx: audioCtx, gainNode, delayNode, frames: [], active: true, canvas, canvasCtx };
+  const setup = { ctx: audioCtx, source, gainNode, delayNode, frames: [], active: true, canvas, canvasCtx };
   delaySetups[slot] = setup;
 
   function captureLoop(){
@@ -595,6 +639,11 @@ async function getGameAudioTrack(){
 }
 
 async function startShare(){
+  // Un clic utilisateur vient de se produire : on en profite pour
+  // relancer l'AudioContext partagé (nécessaire pour que le son
+  // fonctionne côté récepteur — voir getSharedAudioCtx()).
+  getSharedAudioCtx();
+
   const id = prompt("Peer ID du destinataire :");
   if (!id) return;
   const slot = document.getElementById("targetSlot").value;
@@ -622,6 +671,11 @@ async function startShare(){
   let finalStream = videoStream;
 
   if (videoStream.getAudioTracks().length === 0){
+    console.warn("Chrome n'a pas capturé l'audio de la fenêtre partagée. " +
+      "Astuce : dans la fenêtre de partage, coche bien la case " +
+      "'Partager l'audio' (le partage audio d'une simple fenêtre " +
+      "n'est supporté par Chrome que sur Windows ; sur Mac/Linux, " +
+      "utilise plutôt le partage d'un Onglet, ou une carte son virtuelle).");
     // Chrome n'a pas capturé l'audio de la fenêtre →
     // on cherche un périphérique loopback automatiquement
     const gameTrack = await getGameAudioTrack();
@@ -630,6 +684,11 @@ async function startShare(){
         ...videoStream.getVideoTracks(),
         gameTrack
       ]);
+    } else {
+      alert("⚠️ Aucun son détecté (ni audio de fenêtre, ni périphérique " +
+        "loopback). La vidéo va être envoyée SANS SON. Vérifie la case " +
+        "'Partager l'audio' dans la fenêtre de partage Chrome, ou installe " +
+        "un câble audio virtuel (VB-Cable) si tu veux capturer le son du jeu.");
     }
     // Sinon : vidéo uniquement, sans audio
   }
@@ -832,6 +891,8 @@ function updateAudioFocus(){
 }
 
 function toggleMute(slot){
+  // Un clic est un geste utilisateur : on relance l'AudioContext au cas où.
+  getSharedAudioCtx();
   const setup = delaySetups[slot];
   const btn   = document.getElementById("mutebtn-" + slot);
   if (setup){
