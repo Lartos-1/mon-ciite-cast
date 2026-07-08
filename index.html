@@ -67,7 +67,8 @@ button:hover, select:hover{
 .player-container{
   background:#12121c;
   border-radius:16px;
-  padding:10px;
+  padding:0;
+  overflow:hidden;
   position:relative;
   border:1px solid #24243a;
   transition:border-color .2s,box-shadow .2s,transform .2s;
@@ -94,14 +95,16 @@ button:hover, select:hover{
 
 video{
   width:100%;
-  border-radius:12px;
-  background:black;
+  border-radius:0;
+  background:transparent;
+  display:none;
+  vertical-align:block;
 }
 
 /* ===== BANDEAU BAS CENTRE ===== */
 .bottom-label{
   position:absolute;
-  bottom:52px;
+  bottom:10px;
   left:50%;
   transform:translateX(-50%);
   display:flex;
@@ -251,31 +254,6 @@ video{
   color:white;
 }
 
-/* ===== AUTRES ===== */
-.controls-bottom{
-  margin-top:8px;
-  display:flex;
-  justify-content:center;
-  gap:10px;
-}
-
-.control-button{
-  background:#151524;
-  border:1px solid #2a2a40;
-  border-radius:8px;
-  padding:6px 10px;
-}
-
-.toggle-eye-btn{
-  position:absolute;
-  top:8px;right:8px;
-  background:#151524;
-  border:1px solid #2a2a40;
-  border-radius:8px;
-  padding:4px 8px;
-  cursor:pointer;
-  z-index:5;
-}
 
 /* ===== BARRE DES POVs CACHÉS ===== */
 #hidden-bar{
@@ -468,7 +446,6 @@ slots.forEach((slot, i) => {
 
   videosDiv.insertAdjacentHTML("beforeend", `
   <div class="player-container" id="container-${slot}">
-    <button class="toggle-eye-btn" onclick="togglePOV('${slot}')">👁️</button>
     <video id="${slot}" autoplay playsinline></video>
 
     <!-- Bandeau bas centre -->
@@ -488,11 +465,6 @@ slots.forEach((slot, i) => {
       ${pickerItems}
       <button class="reset-flag-btn" onclick="pickFlag('${slot}','')">✕ Retirer le drapeau</button>
     </div>
-
-    <div class="controls-bottom">
-      <button class="control-button" onclick="toggleMute('${slot}')">🔊</button>
-      <button class="control-button" onclick="toggleFullscreen('container-${slot}')">⬜</button>
-    </div>
   </div>`);
 });
 
@@ -511,6 +483,7 @@ peer.on("call", call => {
     const v = videoElements[slot];
     if (!v) return;
     v.srcObject = stream;
+    v.style.display = "block";
     v.play().catch(() => {});
   });
 });
